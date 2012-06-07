@@ -110,9 +110,9 @@ The data scripts from the last section were created programmatically using sever
 
 The meta-scripts are set up to run in the public schema, so that they can be called without qualification. If you prefer to keep these functions segregated in their own schema (e.g., census), you will later have to set the appropriate search_path or call them using a schema-qualified name (e.g. census.sql_import_geoheader()).
 
-In general, the order in which these scripts are run is not that important. Some of the user functions do refer to other user functions, but Postgres will create the function regardless and won't throw an error until the function with the dependecy is called. They are separated into these six files of related functions primarily for bookkeeping purposes. Only one of the last three (Data Store) scripts needs to be run. Running all three is harmless, as they merely create the functions which will create the data stores.
+In general, the order in which these scripts are run is not that important. Some of the user functions do refer to other user functions, but Postgres will create the function regardless and won't throw an error until the function with the dependecy is called. They are separated into these six files of related functions primarily for bookkeeping purposes. Only one of the Data Store scripts needs to be run (i.e., one of the last three scripts). Running all three is harmless, as they merely create the functions which will create the data stores.
 
-The actual functions and support tables are documented in this secion's subsections. In the function definition, brackets ([]) indicate optional parameters. For most of the following scripts, all parameters are optional. However, in order to specify a parameter, all earlier parameters must be explicitly given, even if the default value is desired.
+The actual functions and support tables are documented in this section's subsections. In the function definition, brackets ([]) indicate optional parameters. For most of the following scripts, all parameters are optional. However, in order to specify a parameter, all earlier parameters must be explicitly given, even if the default value is desired.
 
 ## Support Functions and Tables.sql
 
@@ -293,8 +293,8 @@ SELECT sql_geoheader_comments(TRUE);
 SELECT sql_store_by_tables(TRUE);
 SELECT sql_view_estimate_stored_by_tables(TRUE);
 SELECT sql_view_moe_stored_by_tables(TRUE);
-SELECT sql_parse_tmp_geoheader(TRUE); Copies all data from tmp_geoheader to geoheader
-SELECT sql_insert_into_tables(TRUE); Copies all estimates and margins of error to sequence tables
+SELECT sql_parse_tmp_geoheader(TRUE); --Copies all data from tmp_geoheader to geoheader
+SELECT sql_insert_into_tables(TRUE); --Copies all estimates and margins of error to sequence tables
 ```
 
 If using array-based or hstore-based data store, the last five functions will be different.

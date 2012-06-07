@@ -2,7 +2,7 @@
 
 --CREATE SQL STATEMENT TO CREATE geoheader
 DROP FUNCTION IF EXISTS sql_create_geoheader(boolean);
-CREATE FUNCTION sql_create_geoheader(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_create_geoheader(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE
 	sql TEXT;
 BEGIN
@@ -31,19 +31,9 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_create_geoheader();
-CREATE FUNCTION sql_create_geoheader() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_create_geoheader(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 --ADD COMMENTS TO COLUMNS OF geoheader
 DROP FUNCTION IF EXISTS sql_geoheader_comments(boolean);
-CREATE FUNCTION sql_geoheader_comments(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_geoheader_comments(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 	row RECORD;
@@ -58,20 +48,10 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_geoheader_comments();
-CREATE FUNCTION sql_geoheader_comments() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_geoheader_comments(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 --CREATE SQL STATEMENT TO PARSE tmp_geoheader INTO PERMANENT TABLE
 --To Do: Allow target table to depend upon store_by method
 DROP FUNCTION IF EXISTS sql_parse_tmp_geoheader(boolean, text);
-CREATE FUNCTION sql_parse_tmp_geoheader(exec boolean, target text) RETURNS text AS $function$
+CREATE FUNCTION sql_parse_tmp_geoheader(exec boolean = FALSE, target text = 'geoheader') RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 	row RECORD;
@@ -93,24 +73,3 @@ BEGIN
 	RETURN sql;
 END;
 $function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_parse_tmp_geoheader(boolean);
-CREATE FUNCTION sql_parse_tmp_geoheader(exec boolean) RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_parse_tmp_geoheader(exec, 'geoheader') INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_parse_tmp_geoheader();
-CREATE FUNCTION sql_parse_tmp_geoheader() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_parse_tmp_geoheader(FALSE, 'geoheader') INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-

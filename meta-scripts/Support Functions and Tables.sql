@@ -32,23 +32,14 @@ END;
 $function$ LANGUAGE plpgsql;
 
 DROP FUNCTION IF EXISTS sql_import_data_dictionary(text);
-CREATE FUNCTION sql_import_data_dictionary(filename text) RETURNS text AS $function$
+CREATE FUNCTION sql_import_data_dictionary(filename text = 'Sequence_Number_and_Table_Number_Lookup.txt') RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 BEGIN	
 
-	sql := E'COPY data_dictionary FROM \'' || get_census_upload_root() || '/' || current_schema || '/' || filename || E'\' WITH CSV HEADER NULL;';
+	sql := E'COPY data_dictionary FROM \'' || get_census_upload_root() || '/' || current_schema || '/' || filename || E'\' WITH CSV HEADER NULL \'\';';
 	EXECUTE sql;
 	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_import_data_dictionary();
-CREATE FUNCTION sql_import_data_dictionary() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	RETURN sql_import_data_dictionary('Sequence_Number_and_Table_Number_Lookup.txt');
 END;
 $function$ LANGUAGE plpgsql;
 

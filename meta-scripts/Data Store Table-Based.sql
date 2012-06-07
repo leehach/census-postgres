@@ -2,7 +2,7 @@
 
 --CREATE DDL FOR STORAGE BY SEQUENCE
 DROP FUNCTION IF EXISTS sql_store_by_tables(boolean);
-CREATE FUNCTION sql_store_by_tables(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_store_by_tables(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 	sql_estimate text;
@@ -44,18 +44,8 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_store_by_tables();
-CREATE FUNCTION sql_store_by_tables() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_store_by_tables(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 DROP FUNCTION IF EXISTS sql_view_estimate_stored_by_tables(boolean);
-CREATE FUNCTION sql_view_estimate_stored_by_tables(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_view_estimate_stored_by_tables(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 BEGIN	
@@ -89,22 +79,12 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_view_estimate_stored_by_tables();
-CREATE FUNCTION sql_view_estimate_stored_by_tables() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_view_estimate_stored_by_tables(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 /*Margin of error will rarely be used without estimate, so even though
 they are stored in independent sequences, subject table views return estimates
 as well as margins of error
 */
 DROP FUNCTION IF EXISTS sql_view_moe_stored_by_tables(boolean);
-CREATE FUNCTION sql_view_moe_stored_by_tables(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_view_moe_stored_by_tables(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 BEGIN	
@@ -138,18 +118,8 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_view_moe_stored_by_tables();
-CREATE FUNCTION sql_view_moe_stored_by_tables() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_view_moe_stored_by_tables(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 DROP FUNCTION IF EXISTS sql_insert_into_tables(boolean, text);
-CREATE FUNCTION sql_insert_into_tables(exec boolean, actions text) RETURNS text AS $function$
+CREATE FUNCTION sql_insert_into_tables(exec boolean = FALSE, actions text = 'em') RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 	sql_estimate TEXT;
@@ -197,26 +167,6 @@ BEGIN
 	END IF;
 	
 	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_insert_into_tables(boolean);
-CREATE FUNCTION sql_insert_into_tables(exec boolean) RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_insert_into_tables(exec, 'em') INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_insert_into_tables();
-CREATE FUNCTION sql_insert_into_tables() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_insert_into_tables(FALSE, 'em') INTO sql;
 	RETURN sql;
 END;
 $function$ LANGUAGE plpgsql;

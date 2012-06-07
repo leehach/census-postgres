@@ -5,7 +5,7 @@ SET search_path = public;
 
 --CREATE DDL FOR STORAGE BY ARRAY COLUMNS
 DROP FUNCTION IF EXISTS sql_store_by_array_columns(boolean);
-CREATE FUNCTION sql_store_by_array_columns(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_store_by_array_columns(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 BEGIN	
@@ -28,17 +28,6 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_store_by_array_columns();
-CREATE FUNCTION sql_store_by_array_columns() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_store_by_array_columns(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-
 /********************************************************************
 Currently editing this function
 *********************************************************************/
@@ -50,7 +39,7 @@ SELECT sql_parse_tmp_geoheader(ARRAY[TRUE], 'by_arrays');
 
 This function adds data to columns with UPDATE statements.*/
 DROP FUNCTION IF EXISTS sql_insert_into_array_columns(boolean);
-CREATE FUNCTION sql_insert_into_array_columns(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_insert_into_array_columns(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE
 	sql TEXT := '';
 BEGIN
@@ -76,14 +65,3 @@ BEGIN
 	RETURN sql;
 END;
 $function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_insert_into_array_columns();
-CREATE FUNCTION sql_insert_into_array_columns() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_insert_into_array_columns(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-

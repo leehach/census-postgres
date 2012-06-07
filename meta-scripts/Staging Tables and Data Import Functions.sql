@@ -2,7 +2,7 @@
 
 --CREATE DDL FOR GEOHEADER IMPORT TABLE
 DROP FUNCTION IF EXISTS sql_create_tmp_geoheader(boolean);
-CREATE FUNCTION sql_create_tmp_geoheader(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_create_tmp_geoheader(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 BEGIN
@@ -18,19 +18,9 @@ WITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE)
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_create_tmp_geoheader();
-CREATE FUNCTION sql_create_tmp_geoheader() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_create_tmp_geoheader(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 --CREATE SQL STATEMENT TO IMPORT GEOHEADER TO STAGING TABLE
 DROP FUNCTION IF EXISTS sql_import_geoheader(boolean, text[]);
-CREATE FUNCTION sql_import_geoheader(exec boolean, stusab_criteria text[]) RETURNS text AS $function$
+CREATE FUNCTION sql_import_geoheader(exec boolean = FALSE, stusab_criteria text[] = ARRAY['%']) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 	row RECORD;
@@ -46,29 +36,9 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_import_geoheader(boolean);
-CREATE FUNCTION sql_import_geoheader(exec boolean) RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_import_geoheader(exec, ARRAY['%']) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_import_geoheader();
-CREATE FUNCTION sql_import_geoheader() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_import_geoheader(FALSE, ARRAY['%']) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 --CREATE DDL FOR SEQUENCE IMPORT TABLES
 DROP FUNCTION IF EXISTS sql_drop_import_tables(boolean);
-CREATE FUNCTION sql_drop_import_tables(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_drop_import_tables(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE
 	sql TEXT := '';
 	sql_estimate text;
@@ -92,18 +62,8 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_drop_import_tables();
-CREATE FUNCTION sql_drop_import_tables() RETURNS text AS $function$
-DECLARE
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_drop_import_tables(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 DROP FUNCTION IF EXISTS sql_create_import_tables(boolean);
-CREATE FUNCTION sql_create_import_tables(exec boolean) RETURNS text AS $function$
+CREATE FUNCTION sql_create_import_tables(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE
 	sql TEXT := '';
 	sql_estimate text;
@@ -147,16 +107,6 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_create_import_tables();
-CREATE FUNCTION sql_create_import_tables() RETURNS text AS $function$
-DECLARE
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_drop_import_tables(FALSE) INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
 --CREATE DDL FOR IMPORT (COPY) STATEMENTS
 /*
 --COPY can be executed with e.g.
@@ -177,7 +127,8 @@ SELECT sql_import_sequences(TRUE, array['ny', 'w%'], (SELECT array_agg(seq) FROM
 --More examples (BETWEEN 'a' AND 'm', BETWEEN 1 AND 50, using generate_series()) in import file.
 */
 DROP FUNCTION IF EXISTS sql_import_sequences(boolean, text[], int[], text);  
-CREATE FUNCTION sql_import_sequences(exec boolean, stusab_criteria text[], seq_criteria int[], actions text
+CREATE FUNCTION sql_import_sequences(exec boolean = FALSE, stusab_criteria text[] = ARRAY['%'], 
+	seq_criteria int[] = ARRAY[-1], actions text = 'atem'
 	) RETURNS text AS $sql_import_sequences$
 DECLARE 
 	sql TEXT := '';
@@ -189,7 +140,13 @@ DECLARE
 	sql_small_geo TEXT;
 	sql_large_geo_moe TEXT;
 	sql_small_geo_moe TEXT;
+	seq_criteria2 int[];
 BEGIN	
+	IF seq_criteria = ARRAY[-1] THEN 
+		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
+	ELSE
+		seq_criteria2 := seq_criteria;
+	END IF;
 	SELECT 
 		array_to_string(array_agg(sql1), E'\n'),
 		array_to_string(array_agg(sql2), E'\n'),
@@ -215,7 +172,7 @@ BEGIN
 			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql2_moe
 		FROM	stusab, vw_sequence
-		WHERE	stusab ILIKE ANY (stusab_criteria) AND seq = ANY (seq_criteria)
+		WHERE	stusab ILIKE ANY (stusab_criteria) AND seq = ANY (seq_criteria2)
 		) s
 	;
 
@@ -242,43 +199,3 @@ BEGIN
 	RETURN sql;
 END;
 $sql_import_sequences$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_import_sequences(boolean, text[], int[]);
-CREATE FUNCTION sql_import_sequences(exec boolean, stusab_criteria text[], seq_criteria int[]) RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_import_sequences(exec, stusab_criteria, seq_criteria, 'atem') INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_import_sequences(boolean, text[]);
-CREATE FUNCTION sql_import_sequences(exec boolean, stusab_criteria text[]) RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_import_sequences(exec, stusab_criteria, (SELECT array_agg(seq) FROM vw_sequence), 'atem') INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_import_sequences(boolean);
-CREATE FUNCTION sql_import_sequences(exec boolean) RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_import_sequences(exec, ARRAY['%'], (SELECT array_agg(seq) FROM vw_sequence), 'atem') INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
-
-DROP FUNCTION IF EXISTS sql_import_sequences();
-CREATE FUNCTION sql_import_sequences() RETURNS text AS $function$
-DECLARE 
-	sql TEXT := '';
-BEGIN	
-	SELECT sql_import_sequences(FALSE, ARRAY['%'], (SELECT array_agg(seq) FROM vw_sequence), 'atem') INTO sql;
-	RETURN sql;
-END;
-$function$ LANGUAGE plpgsql;
