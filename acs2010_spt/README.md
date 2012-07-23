@@ -42,15 +42,14 @@ These scripts may be run in any order.
 
 These scripts use COPY statements to do the actual data import, albeit to staging tables, not to the final destination. COPY requires that the files be on the server's own filesystem (unlike psql \copy). Since these datasets are large, this is probably a good idea anyway.
 
-The ACS 2010 Selected Population Tables data product is released as an extremely large number of small files (many of which contain no data because of suppression). The total dataset is over 1.5 million files, which means that a full import script will have over 1.5 million lines of code (each line with one COPY statements). Such a large file will be quite unwieldy to work with, particularly if the data manager is only importing selected states. This folder therefore contains both an all-inclusive script and a state-specific scripts.
+The ACS 2010 Selected Population Tables data product is released as an extremely large number of small files (many of which contain no data because of suppression). The total dataset is over 1.5 million files, which means that a full import script would have over 1.5 million lines of code (each line with one COPY statements). Such a large file will be quite unwieldy to work with, particularly if the data manager is only importing selected states. This folder therefore contains only state-specific scripts. Anyone wishing to attempt to import all states at once should make use of the meta-scripts.
 
 These scripts use forward slashes to represent filesystem separators. Testing on Windows Vista indicates that forward slashes will be interpreted correctly. Backslashes, if used, are treated as escape characters and would need to be doubled.
 
 These scripts contain a filesystem placeholder "<census_upload_root>". This placeholder should be updated to reflect your filesystem. The upload root folder should have a child named acs2010_spt. 
 
-The meta-scripts make it easier to import selected states or sequences, or to import only estimates or margins of error. If using the data import scripts instead of the meta-scripts, the data manager will have to manually select the states and sequences desired from these files.
+The meta-scripts make it easier to import selected sequences, or to import only estimates or margins of error. If using the data import scripts instead of the meta-scripts, the data manager will have to manually select the sequences desired from these files.
 
-* import_sequences.sql (all states)
 * import_sequences_XX.sql (individual states by two-character postal code, including DC, PR, and US)
 
 ## Create Data Store
