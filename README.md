@@ -1,4 +1,4 @@
-﻿# Overview
+# Overview
 
 This project consists of a number of SQL scripts and other supporting files for importing some recent US Census datasets into a PostgreSQL database. The datasets of interest are the Decennial Census and the annual American Community Survey (ACS). There are two types of scripts:
 
@@ -7,11 +7,13 @@ This project consists of a number of SQL scripts and other supporting files for 
 
 My desire is to eventually make the schema creation and data import scripts (the first kind of script) conform to the SQL standard, so that they could be used in other SQL implementations than Postgres. As the meta-scripts (the second kind of script) rely upon PL/pgSQL, I doubt they could be converted to implementation-agnostic. I would be more likely to rewrite them in Python or another language.
 
+The data manager has the choice of running the data import scripts directly, or of running the meta-scripts first. If the meta-scripts are run, each script creation functions can be called with the execute parameter set to TRUE (see the section "Standard Function Parameters"), which will programatically create and immediately execute the generated script. The first option is probably conceptually easier to understand. The second option is more powerful, as it gives the data manager more control over the import process (for example, only importing certain states or sequences--the same effect using the data import scripts requires searching the script for specific lines of code to execute or exclude).
+
 # Getting the Data
 
 Instructions for obtaining the data via FTP to appear here.
 
-Each data product (e.g. American Community Survey 2006-2010) can be thought of as one large file, but the data are horizontally partitioned by state and are vertically separated into "segments" (in the Decennial Census) or "sequences" (in ACS) of less than 256 columns each. This makes for an extremely large number of tables that have to be bulk loaded. These import routines assume that all Decennial Census files will be staged in a single directory. The ACS data are separated into large and small geographies, *but file names are reused for both the large and the small geographies*. In order to distinguish between them, the import routines assume that the two types of files are separated into a directories named All_Geographies_Not_Tracts_Block_Groups and Tracts_Block_Groups_0nly. In each case, the parent directory name must match the name of the database schema where the data will be stored. I name the schemas after the datasets folder name on the Census Bureau FTP server, e.g. acs2010_5yr.
+Each data product (e.g. American Community Survey 2006-2010) can be thought of as one large file, but the data are horizontally partitioned by state and are vertically separated into "segments" (in the Decennial Census) or "sequences" (in ACS) of less than 256 columns each. This makes for an extremely large number of tables that have to be bulk loaded. These import routines assume that all Decennial Census files will be staged in a single directory. The ACS data are separated into large and small geographies, *but file names are reused for both the large and the small geographies*. In order to distinguish between them, the import routines assume that the two types of files are separated into a directories named All_Geographies_Not_Tracts_Block_Groups and Tracts_Block_Groups_Only. In each case, the parent directory name must match the name of the database schema where the data will be stored. I name the schemas after the datasets folder name on the Census Bureau FTP server, e.g. acs2010_5yr.
 
 # Running the Data Scripts
 
@@ -41,7 +43,7 @@ These scripts use COPY statements to do the actual data import, albeit to stagin
 
 These scripts use forward slashes to represent filesystem separators. Testing on Windows Vista indicates that forward slashes will be interpreted correctly. Backslashes, if used, are treated as escape characters and would need to be doubled.
 
-These scripts contain a filesystem placeholder "<census_upload_root>". This placeholder should be updated to reflect your filesystem. This folder should have a child named acs2010_5yr. The acs2010_5yr folder should have two children. As mentioned above, the files downloaded from Census should be in two sibling directories named All_Geographies_Not_Tracts_Block_Groups and Tracts_Block_Groups_0nly. 
+These scripts contain a filesystem placeholder "<census_upload_root>". This placeholder should be updated to reflect your filesystem. This folder should have a child named acs2010_5yr. The acs2010_5yr folder should have two children. As mentioned above, the files downloaded from Census should be in two sibling directories named All_Geographies_Not_Tracts_Block_Groups and Tracts_Block_Groups_Only. 
 
 The geoheader files use a fixed-length format, and are therefore imported to a table with a single column. This column is then parsed for insertion the the final geoheader table. The geoheader files contain *all* geographies, in spite of whether they are downloaded with the larger or smaller (tracts and block groups only) datasets. These scripts assume the existence of the All_Geographies_Not_Tracts_Block_Groups folder. If you have only downloaded the tracts and block groups, you will have to modify the script or create the expected folder and move the geography files (g20105xx.txt).
 
@@ -56,7 +58,7 @@ These scripts may be run in any order.
 
 At the moment I am experimenting with three different storage formats. The only one that is completed stores each sequence in its own database table. The other two options combine all the sequences into one table, but, because of Postgres' limit of ~2000 columns in a table, use array columns (one per sequence) or one hstore column to store the data. For information on the status of these options, see below.
 
-Researchers will typically interact with the data via a "subject table" a collection of related data. Often a suject table will break down the population into categories (e.g. age and sex) and include summary columns (e.g. total population, male population, female population). The data are stored by sequences (except for hstore, which pushes the entire dataset into two columns), so subject tables are constructed as views. The view definitions will of course depend upon which data storage method is chosen. **Currently, views are only defined for the table-based data store.**
+Researchers will typically interact with the data via a "subject table" a collection of related data. Often a subject table will break down the population into categories (e.g. age and sex) and include summary columns (e.g. total population, male population, female population). The data are stored by sequences (except for hstore, which pushes the entire dataset into two columns), so subject tables are constructed as views. The view definitions will of course depend upon which data storage method is chosen. **Currently, views are only defined for the table-based data store.**
 
 ### Create Geoheader
 
@@ -77,8 +79,8 @@ Parse_tmp_geoheader.sql may be run at any time. The other scripts must be run in
 2. store_moe_by_tables.sql
 3. insert_into_tables.sql
 4. insert_into_moe.sql
-5. view_subject_stored_by_tables.sql
-6. view_subject_moe_stored_by_tables.sql
+5. view_estimate_stored_by_tables.sql
+6. view_moe_stored_by_tables.sql
 
 ### Create Array Column-based Data Store
 
@@ -260,7 +262,7 @@ Currently incomplete. Provided for your amusement.
 The general procedure is:
 
 1. Run the meta-scripts (previous section). These create functions and support tables. This only needs to be done once, laying the ground for import of multiple Census products.
-2. Run set_census_upload_root(). 
+2. Run set_census_upload_root(). This also only needs to be run once, as long as you download each data product to a subfolder of this root.
 3. Create the schema to hold your data (e.g. acs2010_5yr). Change the search_path to that schema.
 4. Run the data dictionary functions (next subsection). These functions create tables and views which hold support information relevant to a specific data product, including field names of the geoheader, sequences/segments, and subject tables.
 5. Run the data functions. These generate (and optionally execute) the scripts listed in the previous section. They must be run in a specific order.
@@ -272,7 +274,7 @@ Each product has a product-specific script which imports the data dictionary and
 1. Creates a schema named acs2010_5yr (uncomment line to execute).
 2. Creates a geoheader_schema table. The geoheader changes from year to year, so the schema is a list of field names and start and end positions, allowing the creation of a geoheader table with the appropriate structure and the parsing of the fixed length geoheader files.
 3. Creates the data_dictionary table.
-4. Imports the data dictionary file from <census_upload_root>/acs20105yr.
+4. Imports the data dictionary file from <census_upload_root>/acs2010_5yr.
 5. Creates views which extract the sequences, subject tables, and subject table cells from data_dictionary.
 
 ## Run the Data Functions
