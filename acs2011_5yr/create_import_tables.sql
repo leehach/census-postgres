@@ -1,4 +1,4 @@
-﻿CREATE TABLE tmp_seq0001 (
+CREATE TABLE tmp_seq0001 (
 	fileid varchar(6),
 	filetype varchar(6), 
 	stusab varchar(2), 
@@ -44334,3 +44334,4 @@ CREATE TABLE tmp_seq0113_moe (
 	B99259003_moe varchar
 )
 WITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE);
+
