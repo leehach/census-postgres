@@ -28,7 +28,7 @@ DECLARE
 BEGIN	
 	FOR row IN SELECT stusab FROM stusab WHERE stusab ILIKE ANY (stusab_criteria) LOOP
 		sql := sql || E'COPY tmp_geoheader FROM \'' || get_census_upload_root() || '/'
-			|| current_schema() || '/All_Geographies_Not_Tracts_Block_Groups/g20115'
+			|| current_schema() || '/All_Geographies_Not_Tracts_Block_Groups/g20105'
 			|| row.stusab || E'.txt\';\n';
 	END LOOP;
 
@@ -160,19 +160,19 @@ BEGIN
 	FROM (
 		SELECT
 			'COPY tmp_' || seq_id || E' FROM \''
-			|| get_census_upload_root() || '/' || current_schema || '/All_Geographies_Not_Tracts_Block_Groups/e20115'
+			|| get_census_upload_root() || '/' || current_schema || '/All_Geographies_Not_Tracts_Block_Groups/e20105'
 			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql1,
 			'COPY tmp_' || seq_id || E' FROM \''
-			|| get_census_upload_root() || '/' || current_schema || '/Tracts_Block_Groups_Only/e20115'
+			|| get_census_upload_root() || '/' || current_schema || '/Tracts_Block_Groups_Only/e20105'
 			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql2,
 			'COPY tmp_' || seq_id || E'_moe FROM \''
-			|| get_census_upload_root() || '/' || current_schema || '/All_Geographies_Not_Tracts_Block_Groups/m20115'
+			|| get_census_upload_root() || '/' || current_schema || '/All_Geographies_Not_Tracts_Block_Groups/m20105'
 			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql1_moe,
 			'COPY tmp_' || seq_id || E'_moe FROM \''
-			|| get_census_upload_root() || '/' || current_schema || '/Tracts_Block_Groups_Only/m20115'
+			|| get_census_upload_root() || '/' || current_schema || '/Tracts_Block_Groups_Only/m20105'
 			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql2_moe
 		FROM	stusab, vw_sequence

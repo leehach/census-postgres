@@ -35,7 +35,7 @@ Currently editing this function
 /*CREATE TABLE appears above. Table should be populated first with
 geoheader data using 
 
-SELECT sql_parse_tmp_geoheader(ARRAY[TRUE], 'by_arrays');
+SELECT sql_parse_tmp_geoheader(TRUE, 'by_arrays');
 
 This function adds data to columns with UPDATE statements.*/
 DROP FUNCTION IF EXISTS sql_insert_into_array_columns(boolean);

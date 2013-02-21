@@ -3,24 +3,42 @@ THIS SCRIPT IS CURRENTLY INCOMPLETE.
 ****************************************/
 SET search_path = public;
 
---NEED TO TURN INTO A FUNCTION TO BE CONSISTENT WITH REMAINDER OF PROJECT
 --CREATE DDL FOR STORAGE BY HSTORE;
---DROP TABLE IF EXISTS by_hstore ;
-CREATE TABLE by_hstore (
-	LIKE geoheader,
-	estimate hstore,
-	moe hstore,
-	PRIMARY KEY (stusab, logrecno)
-)
-WITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE);
+DROP FUNCTION IF EXISTS sql_store_by_hstore(boolean);
+CREATE FUNCTION sql_store_by_hstore(exec boolean = FALSE) RETURNS text AS $function$
+DECLARE 
+	sql TEXT := '';
+BEGIN	
+	sql := '
+		CREATE TABLE by_hstore (
+			LIKE geoheader,
+			estimate hstore,
+			moe hstore,
+			PRIMARY KEY (stusab, logrecno)
+		)
+		WITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE);
+		';
+	IF exec THEN EXECUTE sql; END IF;
+	RETURN sql;
+END;
+$function$ LANGUAGE plpgsql;
 /*by_hstore created with autovacuum off. Enable with:
 ALTER TABLE by_hstore SET (autovacuum_enabled = TRUE, toast.autovacuum_enabled = TRUE);
 */
 
---CREATE DDL FOR STORAGE BY hstore
---Hstore table is simple to declare. DDL is in Create Data Tables SQL script.
-DROP FUNCTION IF EXISTS sql_insert_into_hstore();
-CREATE FUNCTION sql_insert_into_hstore() RETURNS text AS $function$
+/********************************************************************
+Currently editing this function
+*********************************************************************/
+
+/*CREATE TABLE appears above. Table should be populated first with
+geoheader data using 
+
+SELECT sql_parse_tmp_geoheader(TRUE, 'by_hstore');
+
+This function adds data to columns with UPDATE statements.*/
+
+DROP FUNCTION IF EXISTS sql_insert_into_hstore(boolean);
+CREATE FUNCTION sql_insert_into_hstore(exec boolean = FALSE) RETURNS text AS $function$
 BEGIN
 
 	SELECT
@@ -37,6 +55,8 @@ BEGIN
 		vw_cell
 	ORDER BY seq, seq_position
 	;
+	IF exec THEN EXECUTE sql; END IF;
+	RETURN sql;
 END;
 $function$ LANGUAGE plpgsql;
 
