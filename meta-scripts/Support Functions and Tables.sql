@@ -103,3 +103,23 @@ INSERT INTO stusab VALUES ('wi');
 INSERT INTO stusab VALUES ('wv');
 INSERT INTO stusab VALUES ('wy');
 
+/**NOT USED, TEMPORARILY RETAINED
+
+--set_refyear_period() creates getter function in EACH census schema.
+--Called in Data Dictionary script for EACH Census product.
+--refyear_period used to construct Census product filenames (e.g. g20105ak.txt).
+DROP FUNCTION IF EXISTS set_refyear_period(text);
+CREATE FUNCTION set_refyear_period(refyear_period text) RETURNS void AS $set_refyear_period$
+DECLARE
+	getter TEXT;
+BEGIN
+	DROP FUNCTION IF EXISTS get_refyear_period();
+	getter := E'CREATE FUNCTION get_refyear_period() RETURNS text AS $get_refyear_period$
+	BEGIN
+		RETURN \'' || refyear_period || E'\';
+	END;
+	$get_refyear_period$ LANGUAGE plpgsql;';
+	EXECUTE getter;
+END;
+$set_refyear_period$ LANGUAGE plpgsql;
+***/

@@ -19,17 +19,18 @@ END;
 $function$ LANGUAGE plpgsql;
 
 --CREATE SQL STATEMENT TO IMPORT GEOHEADER TO STAGING TABLE
---NOTE: File name root (20115) is hard coded! Must be altered.
 DROP FUNCTION IF EXISTS sql_import_geoheader(boolean, text[]);
 CREATE FUNCTION sql_import_geoheader(exec boolean = FALSE, stusab_criteria text[] = ARRAY['%']) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 	row RECORD;
+	filename_part TEXT :='';
 BEGIN	
+	EXECUTE 'SELECT ' || current_schema() || '.get_refyear_period();' INTO filename_part;
 	FOR row IN SELECT stusab FROM stusab WHERE stusab ILIKE ANY (stusab_criteria) LOOP
 		sql := sql || E'COPY tmp_geoheader FROM \'' || get_census_upload_root() || '/'
-			|| current_schema() || '/All_Geographies_Not_Tracts_Block_Groups/g20105'
-			|| row.stusab || E'.txt\';\n';
+			|| current_schema() || '/All_Geographies_Not_Tracts_Block_Groups/g' 
+			|| filename_part || row.stusab || E'.txt\';\n';
 	END LOOP;
 
 	IF exec THEN EXECUTE sql; END IF;
@@ -129,7 +130,6 @@ SELECT sql_import_sequences(TRUE, array['ny', 'w%'], (SELECT array_agg(seq) FROM
 --More examples (BETWEEN 'a' AND 'm', BETWEEN 1 AND 50, using generate_series()) in import file.
 */
 
---NOTE: File name root (20115) is hard coded! Must be altered.
 DROP FUNCTION IF EXISTS sql_import_sequences(boolean, text[], int[], text);  
 CREATE FUNCTION sql_import_sequences(exec boolean = FALSE, stusab_criteria text[] = ARRAY['%'], 
 	seq_criteria int[] = ARRAY[-1], actions text = 'atem'
@@ -145,7 +145,9 @@ DECLARE
 	sql_large_geo_moe TEXT;
 	sql_small_geo_moe TEXT;
 	seq_criteria2 int[];
+	filename_part TEXT :='';
 BEGIN	
+	EXECUTE 'SELECT ' || current_schema() || '.get_refyear_period();' INTO filename_part;
 	IF seq_criteria = ARRAY[-1] THEN 
 		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
 	ELSE
@@ -160,20 +162,20 @@ BEGIN
 	FROM (
 		SELECT
 			'COPY tmp_' || seq_id || E' FROM \''
-			|| get_census_upload_root() || '/' || current_schema || '/All_Geographies_Not_Tracts_Block_Groups/e20105'
-			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
+			|| get_census_upload_root() || '/' || current_schema || '/All_Geographies_Not_Tracts_Block_Groups/e'
+			|| filename_part || stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql1,
 			'COPY tmp_' || seq_id || E' FROM \''
-			|| get_census_upload_root() || '/' || current_schema || '/Tracts_Block_Groups_Only/e20105'
-			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
+			|| get_census_upload_root() || '/' || current_schema || '/Tracts_Block_Groups_Only/e'
+			|| filename_part || stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql2,
 			'COPY tmp_' || seq_id || E'_moe FROM \''
-			|| get_census_upload_root() || '/' || current_schema || '/All_Geographies_Not_Tracts_Block_Groups/m20105'
-			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
+			|| get_census_upload_root() || '/' || current_schema || '/All_Geographies_Not_Tracts_Block_Groups/m'
+			|| filename_part || stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql1_moe,
 			'COPY tmp_' || seq_id || E'_moe FROM \''
-			|| get_census_upload_root() || '/' || current_schema || '/Tracts_Block_Groups_Only/m20105'
-			|| stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
+			|| get_census_upload_root() || '/' || current_schema || '/Tracts_Block_Groups_Only/m'
+			|| filename_part || stusab || lpad(seq::varchar, 4, '0') || E'000.txt\' WITH CSV;'
 			AS sql2_moe
 		FROM	stusab, vw_sequence
 		WHERE	stusab ILIKE ANY (stusab_criteria) AND seq = ANY (seq_criteria2)

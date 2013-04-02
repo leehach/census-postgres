@@ -49,7 +49,7 @@ These scripts use COPY statements to do the actual data import, albeit to stagin
 
 These scripts use forward slashes to represent filesystem separators. Testing on Windows Vista indicates that forward slashes will be interpreted correctly. Backslashes, if used, are treated as escape characters and would need to be doubled.
 
-These scripts contain a filesystem placeholder "<census_upload_root>". This placeholder should be updated to reflect your filesystem. This folder should have a child named acs2010_5yr. The acs2010_5yr folder should have two children. As mentioned above, the files downloaded from Census should be in two sibling directories named All_Geographies_Not_Tracts_Block_Groups and Tracts_Block_Groups_Only. 
+These scripts contain a filesystem placeholder "\<census_upload_root\>". This placeholder should be updated to reflect your filesystem. This folder should have a child named acs2010_5yr. The acs2010_5yr folder should have two children. As mentioned above, the files downloaded from Census should be in two sibling directories named All_Geographies_Not_Tracts_Block_Groups and Tracts_Block_Groups_Only. 
 
 The geoheader files use a fixed-length format, and are therefore imported to a table with a single column. This column is then parsed for insertion the the final geoheader table. The geoheader files contain *all* geographies, in spite of whether they are downloaded with the larger or smaller (tracts and block groups only) datasets. These scripts assume the existence of the All_Geographies_Not_Tracts_Block_Groups folder. If you have only downloaded the tracts and block groups, you will have to modify the script or create the expected folder and move the geography files (g20105xx.txt).
 

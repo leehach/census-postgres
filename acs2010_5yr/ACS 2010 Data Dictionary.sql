@@ -6,6 +6,13 @@ CREATE SCHEMA acs2010_5yr;
 SET search_path = acs2010_5yr, public;
 SET client_encoding = 'LATIN1';
 
+DROP FUNCTION IF EXISTS get_refyear_period();
+CREATE FUNCTION get_refyear_period() RETURNS text AS $get_refyear_period$
+BEGIN
+	RETURN '20105';
+END;
+$get_refyear_period$ LANGUAGE plpgsql;
+
 --CREATE TABLE TO HOLD FIELD DEFINITIONS FOR geoheader
 CREATE TABLE geoheader_schema (
 	line_number serial,
