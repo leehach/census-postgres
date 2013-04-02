@@ -207,9 +207,15 @@ SELECT sql_view_estimate_stored_by_tables(TRUE);
 SELECT sql_view_moe_stored_by_tables(TRUE);
 SELECT sql_parse_tmp_geoheader(TRUE); --Copies all data from tmp_geoheader to geoheader
 SELECT sql_insert_into_tables(TRUE); --Copies all estimates and margins of error to sequence tables
-```
 
-If using array-based or hstore-based data store, the last five functions will be different.
+--For array-based table store:
+SELECT sql_store_by_array_columns(TRUE);
+SELECT sql_parse_tmp_geoheader(TRUE, 'by_arrays');
+
+--For hstore-based data store:
+--Not yet implemented
+
+```
 
 Note that the functions sql_import_sequences() and sql_insert_into_tables() will take a LO-O-ONG time to execute, at least overnight, possibly more than one overnight. These can be speeded up by using the parameters to do only states, sequences, or geographies in various batches. As I experiment, I may come up with better faster ways to do this. If you are running Postgres 9.1, you can speed up import by altering sql_create_import_tables() to create UNLOGGED tables (http://www.postgresql.org/docs/9.1/interactive/sql-createtable.html). If you are not using Postgres 9.1, logging can be avoided if the staging table is created or truncated prior to import, and the COPY statements are part of the same transaction, i.e. The functions as currently written do not make this easy to do.
 
