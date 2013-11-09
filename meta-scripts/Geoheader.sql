@@ -26,8 +26,12 @@ BEGIN
 		) s
 	;
 
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;
 
@@ -43,8 +47,12 @@ BEGIN
 		sql := sql || 'COMMENT ON COLUMN geoheader.' || row.name || ' IS ' || quote_literal(COALESCE(row.descr, row.sumlevels, '')) || E';\n';
 	END LOOP;
 
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;
 
@@ -69,7 +77,11 @@ BEGIN
 	END LOOP;
 	sql := sql || 'FROM tmp_geoheader';
 
-	IF exec THEN EXECUTE sql; END IF;	
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;

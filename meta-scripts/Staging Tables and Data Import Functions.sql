@@ -38,8 +38,12 @@ BEGIN
 			|| filename_part || row.stusab || E'.txt\';\n';
 	END LOOP;
 
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;
 
@@ -64,8 +68,12 @@ BEGIN
 	;
 
 	sql := sql_estimate || E'\n\n' || sql_moe;
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;
 
@@ -109,8 +117,12 @@ BEGIN
 	;
 
 	sql := sql_estimate || E'\n\n' || sql_moe;
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;
 
@@ -206,7 +218,11 @@ BEGIN
 		IF bool_moe THEN sql := sql || sql_small_geo_moe || E'\n\n'; END IF;
 	END IF;
 
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $sql_import_sequences$ LANGUAGE plpgsql;

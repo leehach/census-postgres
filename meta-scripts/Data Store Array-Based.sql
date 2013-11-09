@@ -23,8 +23,12 @@ BEGIN
 		) s
 	;
 
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;
 
@@ -61,8 +65,12 @@ BEGIN
 		) s
 	;
 
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;
 
@@ -90,8 +98,12 @@ BEGIN
 		) s
 	;
 
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
 END;
 $function$ LANGUAGE plpgsql;
 
