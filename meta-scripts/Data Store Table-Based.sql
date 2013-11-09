@@ -13,7 +13,8 @@ BEGIN
 	FROM (
 		SELECT 
 			seq,
-			CASE WHEN seq_position = 1 THEN 'CREATE TABLE ' || seq_id || E' (\n'
+			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN 
+				'CREATE TABLE ' || seq_id || E' (\n'
 				|| E'\tfileid varchar(6),\n\tfiletype varchar(6), \n\tstusab varchar(2), \n'
 				|| E'\tchariter varchar(3), \n\tseq varchar(4), \n\tlogrecno int,\n' 
 				ELSE ''
@@ -23,7 +24,8 @@ BEGIN
 				THEN E'\n\tPRIMARY KEY (stusab, logrecno)\n)\nWITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE);\n'
 				ELSE ''
 			END AS sql1,
-			CASE WHEN seq_position = 1 THEN 'CREATE TABLE ' || seq_id || E'_moe (\n'
+			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN 
+				'CREATE TABLE ' || seq_id || E'_moe (\n'
 				|| E'\tfileid varchar(6),\n\tfiletype varchar(6), \n\tstusab varchar(2), \n'
 				|| E'\tchariter varchar(3), \n\tseq varchar(4), \n\tlogrecno int,\n' 
 				ELSE ''
@@ -142,7 +144,7 @@ BEGIN
 	FROM (
 		SELECT
 			seq,
-			CASE WHEN seq_position = 1 THEN
+			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
 				'INSERT INTO ' || seq_id ||
 				E'\nSELECT fileid, filetype, upper(stusab), chariter, seq, logrecno::int,\n' 
 				ELSE ''
@@ -152,7 +154,7 @@ BEGIN
 				E'\nFROM tmp_' || seq_id || ';'
 				ELSE ','
 			END AS sql1,
-			CASE WHEN seq_position = 1 THEN
+			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
 				'INSERT INTO ' || seq_id || 
 				E'_moe\nSELECT fileid, filetype, upper(stusab), chariter, seq, logrecno::int,\n' 
 				ELSE ''

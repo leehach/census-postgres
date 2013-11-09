@@ -49,7 +49,7 @@ BEGIN
 	SELECT array_to_string(array_agg(sql_statement), E'\n') INTO sql
 	FROM (
 		SELECT
-			CASE WHEN seq_position = 1 THEN
+			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
 				'UPDATE by_hstore SET estimate = estimate || '
 				ELSE ''
 			END || 

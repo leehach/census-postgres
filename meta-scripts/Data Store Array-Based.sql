@@ -12,7 +12,7 @@ BEGIN
 	SELECT array_to_string(array_agg(sql_statement), '') INTO sql 
 	FROM (
 		SELECT 
-			CASE WHEN seq = 1 THEN E'CREATE TABLE by_arrays (\n\tLIKE geoheader,\n' ELSE '' END ||
+			CASE WHEN seq = min(seq_position) OVER (PARTITION BY seq) THEN E'CREATE TABLE by_arrays (\n\tLIKE geoheader,\n' ELSE '' END ||
 			E'\t' || seq_id || E' double precision[],\n' ||
 			CASE WHEN seq = max(seq) OVER ()
 				THEN E'\tPRIMARY KEY (stusab, logrecno)\n)\nWITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE);\n'
@@ -50,7 +50,7 @@ BEGIN
 	SELECT array_to_string(array_agg(sql_statement), E'\n') INTO sql
 	FROM (
 		SELECT
-			CASE WHEN seq_position = 1 THEN
+			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
 				'UPDATE by_arrays SET ' || seq_id || ' = ARRAY['
 				ELSE ''
 			END || 
@@ -113,7 +113,7 @@ $function$ LANGUAGE plpgsql;
 
 		SELECT 
 			seq,
-			CASE WHEN seq = 1 AND seq_position = 1 THEN E'CREATE VIEW vw_estimate_by_arrays AS SELECT \n'
+			CASE WHEN seq = min(seq_position) OVER (PARTITION BY seq) AND seq_position = 1 THEN E'CREATE VIEW vw_estimate_by_arrays AS SELECT \n'
 				|| E'\tstusab, logrecno,\n' 
 				ELSE ''
 			END || 
