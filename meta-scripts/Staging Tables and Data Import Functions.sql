@@ -13,8 +13,13 @@ CREATE TABLE tmp_geoheader (
 WITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE)
 ;';
 
-	IF exec THEN EXECUTE sql; END IF;
-	RETURN sql;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
+	
 END;
 $function$ LANGUAGE plpgsql;
 
