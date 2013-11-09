@@ -5,9 +5,13 @@ DROP FUNCTION IF EXISTS sql_create_tmp_geoheader(boolean);
 CREATE FUNCTION sql_create_tmp_geoheader(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
+	use_unlogged TEXT := '';
 BEGIN
+	IF split_part(current_setting('server_version'), '.', 1)::int >= 9 AND split_part(current_setting('server_version'), '.', 2)::int >= 1 THEN
+		use_unlogged = 'UNLOGGED ';
+	END IF;
 	sql := 'DROP TABLE IF EXISTS tmp_geoheader;
-CREATE TABLE tmp_geoheader (
+CREATE ' || use_unlogged || 'TABLE tmp_geoheader (
 	all_fields varchar
 )
 WITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE)
@@ -83,14 +87,19 @@ DECLARE
 	sql TEXT := '';
 	sql_estimate text;
 	sql_moe text;
+	use_unlogged TEXT := '';
 BEGIN
+	IF split_part(current_setting('server_version'), '.', 1)::int >= 9 AND split_part(current_setting('server_version'), '.', 2)::int >= 1 THEN
+		use_unlogged = 'UNLOGGED ';
+	END IF;
+
 	SELECT array_to_string(array_agg(sql1), E'\n'), array_to_string(array_agg(sql2), E'\n') 
 	INTO sql_estimate, sql_moe
 	FROM (
 		SELECT
 			seq,
-			CASE WHEN seq_position = 1 THEN
-				'CREATE TABLE tmp_' || seq_id || E' (\n'
+			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
+				'CREATE ' || use_unlogged || 'TABLE tmp_' || seq_id || E' (\n'
 				|| E'\tfileid varchar(6),\n\tfiletype varchar(6), \n\tstusab varchar(2), \n'
 				|| E'\tchariter varchar(3), \n\tseq varchar(4), \n\tlogrecno int,\n' 
 				ELSE ''
@@ -100,8 +109,8 @@ BEGIN
 				THEN E'\n)\nWITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE);\n'
 				ELSE ','
 			END AS sql1,
-			CASE WHEN seq_position = 1 THEN
-				'CREATE TABLE tmp_' || seq_id || E'_moe (\n'
+			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
+				'CREATE ' || use_unlogged || 'TABLE tmp_' || seq_id || E'_moe (\n'
 				|| E'\tfileid varchar(6),\n\tfiletype varchar(6), \n\tstusab varchar(2), \n'
 				|| E'\tchariter varchar(3), \n\tseq varchar(4), \n\tlogrecno int,\n' 
 				ELSE ''
