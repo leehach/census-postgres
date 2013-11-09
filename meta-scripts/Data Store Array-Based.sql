@@ -65,3 +65,61 @@ BEGIN
 	RETURN sql;
 END;
 $function$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS sql_view_estimate_stored_by_array_columns(boolean);
+CREATE FUNCTION sql_view_estimate_stored_by_array_columns(exec boolean = FALSE) RETURNS text AS $function$
+DECLARE 
+	sql TEXT := '';
+BEGIN	
+	SELECT array_to_string(array_agg(sql_statement), E'\n') INTO sql 
+	FROM (
+		SELECT 
+			seq,
+			CASE WHEN table_position = 1 THEN 'CREATE VIEW ' || table_id || E' AS SELECT \n'
+				|| E'\tstusab, logrecno,\n' 
+				ELSE ''
+			END || 
+			E'\t' || seq_id || '[' || seq_position || ']' || ' AS ' || cell_id || 
+			CASE WHEN table_position = max(table_position) OVER (PARTITION BY table_id)
+				THEN E'\nFROM by_arrays;\n'
+				ELSE ','
+			END AS sql_statement
+		FROM vw_cell JOIN (SELECT seq, coverage FROM vw_sequence) s USING (seq)
+		WHERE COALESCE(coverage, 'all') != 'pr'
+		ORDER BY seq, seq_position
+		) s
+	;
+
+	IF exec THEN EXECUTE sql; END IF;
+	RETURN sql;
+END;
+$function$ LANGUAGE plpgsql;
+
+/*
+--Alternate view of estimates. Each subject table is an array column. 
+--Too large to do SELECT *, but OK to query specific columns?
+
+		SELECT 
+			seq,
+			CASE WHEN seq = 1 AND seq_position = 1 THEN E'CREATE VIEW vw_estimate_by_arrays AS SELECT \n'
+				|| E'\tstusab, logrecno,\n' 
+				ELSE ''
+			END || 
+			CASE WHEN table_position = 1
+				THEN 'ARRAY['
+				ELSE ''
+			END ||
+			E'\t' || seq_id || '[' || seq_position || ']' ||
+			CASE WHEN table_position = max(table_position) OVER (PARTITION BY table_id)
+				THEN E'\n\t] AS ' || table_id ||
+				CASE WHEN seq = max(seq) OVER ()  
+					THEN E'\nFROM by_arrays;\n'
+					ELSE ','
+				END
+				ELSE ','
+			END AS sql_statement
+		FROM vw_cell JOIN (SELECT seq, coverage FROM vw_sequence) s USING (seq)
+		WHERE COALESCE(coverage, 'all') != 'pr'
+		ORDER BY seq, seq_position
+
+*/

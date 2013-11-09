@@ -214,6 +214,9 @@ SELECT sql_parse_tmp_geoheader(TRUE, 'by_arrays');
 
 --For hstore-based data store:
 --Not yet implemented
+SELECT sql_store_by_hstore(TRUE);
+SELECT sql_parse_tmp_geoheader(TRUE, 'by_hstore');
+
 
 ```
 
