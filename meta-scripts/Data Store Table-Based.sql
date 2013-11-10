@@ -22,6 +22,7 @@ BEGIN
 
 	sql := sql_estimate || E'\n\n' || sql_moe;
 	IF exec THEN 
+		DELETE FROM import_log WHERE seq > 0;
 		EXECUTE sql; 
 		RETURN 'Success!';
 	ELSE
@@ -284,6 +285,7 @@ BEGIN
 
 	sql := sql_estimate || E'\n\n' || sql_moe;
 	IF exec THEN 
+		DELETE FROM import_log WHERE seq > 0;
 		EXECUTE sql; 
 		RETURN 'Success!';
 	ELSE

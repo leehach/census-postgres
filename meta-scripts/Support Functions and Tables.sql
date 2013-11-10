@@ -43,6 +43,51 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
+DROP FUNCTION IF EXISTS sql_create_import_log();
+CREATE FUNCTION sql_create_import_log() RETURNS text AS $function$
+DECLARE 
+	sql TEXT := '';
+BEGIN	
+
+	sql := 'CREATE TABLE import_log (
+		seq int, stusab varchar(2), geo varchar, estimate_moe text);';
+	EXECUTE sql;
+	RETURN sql;
+END;
+$function$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS sql_populate_import_log();
+CREATE FUNCTION sql_populate_import_log() RETURNS void AS $function$
+DECLARE 
+	v record;
+	i int := 0;
+BEGIN	
+	TRUNCATE import_log;
+	
+	INSERT INTO import_log (seq, stusab, geo)
+	SELECT DISTINCT 0, stusab, CASE sumlevel WHEN 40 THEN 'large' WHEN 140 THEN 'small' END
+	FROM geoheader
+	WHERE sumlevel in (40, 140);
+
+	FOR v IN SELECT seq, seq_id FROM vw_sequence LOOP
+		EXECUTE $$INSERT INTO import_log (seq, stusab, geo, estimate_moe)
+			SELECT DISTINCT $$ || v.seq || $$, stusab, 
+				CASE sumlevel WHEN 40 THEN 'large' WHEN 140 THEN 'small' END,
+				'estimate'
+			FROM $$ || v.seq_id || $$ JOIN geoheader USING (stusab, logrecno)
+			WHERE sumlevel in (40, 140);$$;
+		EXECUTE $$INSERT INTO import_log (seq, stusab, geo, estimate_moe)
+			SELECT DISTINCT $$ || v.seq || $$, stusab, 
+				CASE sumlevel WHEN 40 THEN 'large' WHEN 140 THEN 'small' END,
+				'moe'
+			FROM $$ || v.seq_id || $$_moe JOIN geoheader USING (stusab, logrecno)
+			WHERE sumlevel in (40, 140);$$;			
+	END LOOP;
+	
+	RETURN;
+END;
+$function$ LANGUAGE plpgsql;
+
 --CREATE LIST OF STATES/GEOGRAPHIC ENTITIES FOR PURPOSES OF ITERATING FILES FOR IMPORT
 DROP TABLE IF EXISTS stusab;
 CREATE TABLE stusab (
