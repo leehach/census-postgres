@@ -80,10 +80,10 @@ To specify all sequences explicitly, use (SELECT array_agg(seq) FROM vw_sequence
 
 actions: The actions parameter determines what part of the entire Census dataset to import (or generate scripts for). The parameter is inspected for the letters a, t, e, and m, in any order.
 
-a: Indicates to import the All_Geographies_Not_Tracts_Block_Groups files (large geographies).
-t: Indicates to import the Tracts_Block_Groups_Only files (small geographies).
-e: Indicates to import the estimates.
-m: Indicates to import the margins of error.
+* a: Indicates to import the All_Geographies_Not_Tracts_Block_Groups files (large geographies).
+* t: Indicates to import the Tracts_Block_Groups_Only files (small geographies).
+* e: Indicates to import the estimates.
+* m: Indicates to import the margins of error.
 
 Other letters are ignored. As a shortcut, if both large and small geographies are desired, a and t can be omitted. Thus, 'e' is the same as 'ate', and will import estimates only, for both large and small geographies. Similarly, if both estimates and margins of error are desired, e and m can be omitted. Thus, 't' is the same as 'tem', and will import both estimates and margins of error for small geographies only. To import only estimates for both large and small geographies:
 
