@@ -84,7 +84,7 @@ To specify all sequences explicitly, use (SELECT array_agg(seq) FROM vw_sequence
 
     sql_create_tmp_geoheader([exec boolean])
 
-This script generates the SQL script to create tmp_geoheader. Since the geoheader file is fixed length, tmp_geoheader has a single column.
+This script generates the SQL script to create tmp_geoheader. Since the geoheader file is fixed length, tmp_geoheader has a single column. Creates UNLOGGED table if Postgres version 9.1+ (allowing faster loading, but will lose data in unexpected database shutdown).
 
     sql_import_geoheader([exec boolean[, stusab_criteria text array]])
 
@@ -96,7 +96,7 @@ This drops all staging tables for the estimate sequences and margin of error seq
 
     sql_create_import_tables([exec boolean])
 
-This creates all staging tables for the estimate sequences and margin of error sequences. If you only want to create staging tables for estimates or for margins of error call, you must generate the script and only run the first or second half (drop estimats and drop MOE tables, respectively). Note that generating the staging tables is harmless. If you don't import margins of error, the margins of error tables won't be used and you can clean up with sql_drop_import_tables() after the estimates data has been moved to it's final destination.
+This creates all staging tables for the estimate sequences and margin of error sequences. If you only want to create staging tables for estimates or for margins of error call, you must generate the script and only run the first or second half (drop estimats and drop MOE tables, respectively). Note that generating the staging tables is harmless. If you don't import margins of error, the margins of error tables won't be used and you can clean up with sql_drop_import_tables() after the estimates data has been moved to it's final destination. Creates UNLOGGED tables if Postgres version 9.1+ (allowing faster loading, but will lose data in unexpected database shutdown).
 
 ### Functions to Import the Data
 
@@ -149,15 +149,34 @@ Creates one database view displaying estimates for each "subject table".
 
 Creates one database view for each "subject table". Margin of error will rarely be used independent of their estimate, the MOE views return estimates as well as margins of error.
 
-    sql_insert_into_tables([exec boolean[, actions text]])
+    sql_insert_into_tables([exec boolean[, seq_criteria int array[, actions text]]])
 
-Transfers data from the staging tables to the estimate and margin of error tables. The actions parameter determines what part of the entire Census dataset to move to final storage (or generate scripts for). If omitted, the default is to operate on both the estimates and margins of error. The parameter is inspected for the letters e and m, in any order.
+Transfers data from the staging tables to the estimate and margin of error tables. The seq_criteria parameter determines which sequences to transfer to permanent storage. If omitted, all sequences are copied. The actions parameter determines what part of the entire Census dataset to move to final storage (or generate scripts for). If omitted, the default is to operate on both the estimates and margins of error. The parameter is inspected for the letters e and m, in any order.
 
 e: Indicates to import the estimates.
 m: Indicates to import the margins of error.
 
 Other letters are ignored. An empty string or a string with neither e nor m is treated as a missing parameter, and follows the default behavior which is to operate on both estimates and margins of error.
 
+If you have only staged some sequences or just the estimates or margins of errors, this function will harmlessly attempt to copy zero rows (for the missing sequences or estimates/MOEs) from the staging to the permanent tables.
+
+### Maintenance functions
+
+These functions are used to DROP, TRUNCATE, VACUUM, or set autovacuum on existing permanent storage tables.
+
+    sql_drop_storage_tables([exec boolean])
+
+**Use cautiously.** DROPs storage tables **with CASCADE**. If you have created views or other objects dependent upon these tables, they will be dropped also. Since sql_store_by_tables() creates *all* sequence storage tables in the schema, this function does not allow dropping of a single sequence or subset of sequences. 
+
+    sql_truncate_storage_tables([exec boolean[, seq_criteria int array[, actions text]]])
+
+TRUNCATEs storage tables. See sql_insert_into_tables() for an explanation of parameters.
+
+    sql_autovacuum_storage_tables(set_autovacuum boolean[, exec boolean[, seq_criteria int array[, actions text]]])
+
+Autovacuum can take up considerable resources, interfering with bulk loading of data, so autovacuum is disabled on the storage tables by default. The administrator can use this function to turn back on autovacuum at a convenient time, and to turn it back off for additional bulk loading of data.
+
+Note that the first parameter, set_autovacuum, is a boolean indicating whether to enable autovacuum (TRUE) or disable it (FALSE). Setting it to match its current setting is harmless, so if it has been enabled for some tables, you don't have to figure out which tables are currently enabled in order to disable all autovacuum on all tables. See sql_insert_into_tables() for an explanation of subsequent parameters.
 
 ## Data Store Array-Based.sql
 

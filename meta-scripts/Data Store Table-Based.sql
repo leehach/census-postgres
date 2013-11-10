@@ -225,18 +225,7 @@ BEGIN
 				CASE WHEN seq_position = max(seq_position) OVER (PARTITION BY seq) THEN
 					E'\nFROM tmp_' || seq_id || '_moe;'
 					ELSE ','
-				END AS values_list_moe/*,
-
-				CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
-					'INSERT INTO ' || seq_id || 
-					E'_moe\nSELECT fileid, filetype, upper(stusab), chariter, seq, logrecno::int,\n' 
-					ELSE ''
-				END || 
-				E'\tNULLIF(NULLIF(' || cell_id || E'_moe, \'\'), \'.\')::double precision' ||
-				CASE WHEN seq_position = max(seq_position) OVER (PARTITION BY seq) THEN
-					E'\nFROM tmp_' || seq_id || '_moe;'
-					ELSE ','
-				END AS sql2*/
+				END AS values_list_moe
 			FROM
 				vw_cell
 			WHERE	seq = ANY (seq_criteria2)
@@ -265,4 +254,78 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
+--Maintenance Functions
+DROP FUNCTION IF EXISTS sql_truncate_storage_tables(boolean, int[], text);
+CREATE FUNCTION sql_truncate_storage_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], actions text = 'em') RETURNS text AS $function$
+DECLARE
+	sql TEXT := '';
+	sql_estimate text;
+	sql_moe text;
+	seq_criteria2 int[];
+BEGIN	
+	IF seq_criteria = ARRAY[-1] THEN 
+		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
+	ELSE
+		seq_criteria2 := seq_criteria;
+	END IF;
+
+	SELECT array_to_string(array_agg(sql1), E'\n'), array_to_string(array_agg(sql2), E'\n') 
+	INTO sql_estimate, sql_moe
+	FROM (
+		SELECT
+			seq,
+			'TRUNCATE ' || seq_id || ';' AS sql1,
+			'TRUNCATE ' || seq_id || '_moe;' AS sql2
+		FROM 	vw_sequence
+		where 	seq = any (seq_criteria2)
+		ORDER BY seq
+		) s
+	;
+
+	sql := sql_estimate || E'\n\n' || sql_moe;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
+END;
+$function$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS sql_autovacuum_storage_tables(boolean, boolean, int[], text);
+CREATE FUNCTION sql_autovacuum_storage_tables(set_autovacuum boolean, exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], actions text = 'em') RETURNS text AS $function$
+DECLARE
+	sql TEXT := '';
+	sql_estimate text;
+	sql_moe text;
+	seq_criteria2 int[];
+BEGIN	
+	IF seq_criteria = ARRAY[-1] THEN 
+		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
+	ELSE
+		seq_criteria2 := seq_criteria;
+	END IF;
+
+	SELECT array_to_string(array_agg(sql1), E'\n'), array_to_string(array_agg(sql2), E'\n') 
+	INTO sql_estimate, sql_moe
+	FROM (
+		SELECT
+			seq,
+			'ALTER TABLE ' || seq_id || ' SET (autovacuum_enabled = ' || set_autovacuum || ', toast.autovacuum_enabled = ' || set_autovacuum || ');' AS sql1,
+			'ALTER TABLE ' || seq_id || '_moe SET (autovacuum_enabled = ' || set_autovacuum || ', toast.autovacuum_enabled = ' || set_autovacuum || ');' AS sql2
+		FROM 	vw_sequence
+		where 	seq = any (seq_criteria2)
+		ORDER BY seq
+		) s
+	;
+
+	sql := sql_estimate || E'\n\n' || sql_moe;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
+END;
+$function$ LANGUAGE plpgsql;
 
