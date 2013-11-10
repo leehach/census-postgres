@@ -56,7 +56,7 @@ This creates a table of state postal codes, one entry per state. It is used by t
 
 ## Standard Function Parameters
 
-Parameters used by several different functions are detailed here. For the SQL-generating functions, the first (optional) parameter is always a boolean named exec, which controls whether the SQL is immediately executed after being generated. If called with no parameters, exec = FALSE is assumed, i.e. the generated script is not executed. Additional parameters control additional options. The generated SQL statement, whether executed or not, is returned to the client in a (sometimes very long) text string.
+Parameters used by several different functions are detailed here. For the SQL-generating functions, the first (optional) parameter is always a boolean named exec, which controls whether the SQL is immediately executed after being generated. If called with no parameters, exec = FALSE is assumed, i.e. the generated script is not executed. Additional parameters control additional options. If exec = TRUE, the function just returns 'Success!'; if FALSE, the generated SQL statement is returned to the client in a (sometimes very long) text string.
 
 exec: Execute SQL immediately after it is generated. Defaults to FALSE.
 
