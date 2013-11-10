@@ -52,13 +52,21 @@ END;
 $function$ LANGUAGE plpgsql;
 
 --CREATE DDL FOR SEQUENCE IMPORT TABLES
-DROP FUNCTION IF EXISTS sql_drop_import_tables(boolean);
-CREATE FUNCTION sql_drop_import_tables(exec boolean = FALSE) RETURNS text AS $function$
+DROP FUNCTION IF EXISTS sql_drop_import_tables(boolean, int[], text);
+CREATE FUNCTION sql_drop_import_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], 
+	actions text = 'atem') RETURNS text AS $function$
 DECLARE
 	sql TEXT := '';
 	sql_estimate text;
 	sql_moe text;
-BEGIN
+	seq_criteria2 int[];
+BEGIN	
+	IF seq_criteria = ARRAY[-1] THEN 
+		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
+	ELSE
+		seq_criteria2 := seq_criteria;
+	END IF;
+
 	SELECT array_to_string(array_agg(sql1), E'\n'), array_to_string(array_agg(sql2), E'\n') 
 	INTO sql_estimate, sql_moe
 	FROM (
@@ -67,6 +75,7 @@ BEGIN
 			'DROP TABLE IF EXISTS tmp_' || seq_id || E';' AS sql1,
 			'DROP TABLE IF EXISTS tmp_' || seq_id || E'_moe;' AS sql2
 		FROM vw_sequence
+		WHERE	seq = ANY (seq_criteria2)
 		ORDER BY seq
 		) s
 	;
@@ -81,14 +90,22 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_create_import_tables(boolean);
-CREATE FUNCTION sql_create_import_tables(exec boolean = FALSE) RETURNS text AS $function$
+DROP FUNCTION IF EXISTS sql_create_import_tables(boolean, int[], text);
+CREATE FUNCTION sql_create_import_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], 
+	actions text = 'atem') RETURNS text AS $function$
 DECLARE
 	sql TEXT := '';
 	sql_estimate text;
 	sql_moe text;
 	use_unlogged TEXT := '';
-BEGIN
+	seq_criteria2 int[];
+BEGIN	
+	IF seq_criteria = ARRAY[-1] THEN 
+		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
+	ELSE
+		seq_criteria2 := seq_criteria;
+	END IF;
+
 	IF split_part(current_setting('server_version'), '.', 1)::int >= 9 AND split_part(current_setting('server_version'), '.', 2)::int >= 1 THEN
 		use_unlogged = 'UNLOGGED ';
 	END IF;
@@ -121,6 +138,7 @@ BEGIN
 				ELSE ','
 			END AS sql2
 		FROM vw_cell
+		WHERE	seq = ANY (seq_criteria2)
 		ORDER BY seq, seq_position
 		) s
 	;

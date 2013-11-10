@@ -78,6 +78,17 @@ seq_criteria int: An array of sequence/segment numbers. Defaults to all sequence
 
 To specify all sequences explicitly, use (SELECT array_agg(seq) FROM vw_sequence).
 
+actions: The actions parameter determines what part of the entire Census dataset to import (or generate scripts for). The parameter is inspected for the letters a, t, e, and m, in any order.
+
+a: Indicates to import the All_Geographies_Not_Tracts_Block_Groups files (large geographies).
+t: Indicates to import the Tracts_Block_Groups_Only files (small geographies).
+e: Indicates to import the estimates.
+m: Indicates to import the margins of error.
+
+Other letters are ignored. As a shortcut, if both large and small geographies are desired, a and t can be omitted. Thus, 'e' is the same as 'ate', and will import estimates only, for both large and small geographies. Similarly, if both estimates and margins of error are desired, e and m can be omitted. Thus, 't' is the same as 'tem', and will import both estimates and margins of error for small geographies only. To import only estimates for both large and small geographies:
+
+    SELECT sql_import_sequences(TRUE, ARRAY['%'], (SELECT array_agg(seq) FROM vw_sequence), 'e');
+
 ## Staging Tables and Data Import Functions.sql
 
 ### Functions to Create the Staging Tables
@@ -90,13 +101,12 @@ This script generates the SQL script to create tmp_geoheader. Since the geoheade
 
 This script generates the COPY statements which actually import the geoheader files to the staging tables. 
 
-    sql_drop_import_tables([exec boolean])
+    sql_drop_import_tables([exec boolean[, seq_criteria int array [, actions text]]])
+    sql_create_import_tables([exec boolean[, seq_criteria int array [, actions text]]])
 
-This drops all staging tables for the estimate sequences and margin of error sequences. If you only want to drop estimates or margin of error staging tables, call, you must generate the script and only run the first or second half (drop estimats and drop MOE tables, respectively).
+These functions drop or create staging tables for the estimate sequences and margin of error sequences. The parameters are explained above. There is no ability to restrict by state, since all states are copied to the same staging table. Generating unused staging tables is harmless. Usually it is easiest to create and drop all staging tables at once, but high-level function (to be added) will DROP IF EXISTS and CREATE the import tables, transfer to final storage, and DROP the no longer needed import table.
 
-    sql_create_import_tables([exec boolean])
-
-This creates all staging tables for the estimate sequences and margin of error sequences. If you only want to create staging tables for estimates or for margins of error call, you must generate the script and only run the first or second half (drop estimats and drop MOE tables, respectively). Note that generating the staging tables is harmless. If you don't import margins of error, the margins of error tables won't be used and you can clean up with sql_drop_import_tables() after the estimates data has been moved to it's final destination. Creates UNLOGGED tables if Postgres version 9.1+ (allowing faster loading, but will lose data in unexpected database shutdown).
+The create function creates UNLOGGED tables if Postgres version 9.1+ (allowing faster loading, but will lose data in unexpected database shutdown).
 
 ### Functions to Import the Data
 
@@ -108,14 +118,7 @@ Imports the geoheader file for the designated states to tmp_geoheader.
 
     sql_import_sequences([exec boolean[, stusab_criteria text array[, seq_criteria int array [, actions text]]]])
 
-Imports the sequence files to the estimate staging tables and the margin of error staging tables. The first three parameters are explained above. The actions parameter determines what part of the entire Census dataset to import (or generate scripts for). The parameter is inspected for the letters a, t, e, and m, in any order.
-
-a: Indicates to import the All_Geographies_Not_Tracts_Block_Groups files (large geographies).
-t: Indicates to import the Tracts_Block_Groups_Only files (small geographies).
-e: Indicates to import the estimates.
-m: Indicates to import the margins of error.
-
-Other letters are ignored. As a shortcut, if both large and small geographies are desired, a and t can be omitted. Thus, 'e' is the same as 'ate', and will import estimates only, for both large and small geographies. Similarly, if both estimates and margins of error are desired, e and m can be omitted. Thus, 't' is the same as 'tem', and will import both estimates and margins of error for small geographies only.
+Imports the sequence files to the estimate staging tables and the margin of error staging tables. The parameters are explained above. 
 
 ## Geoheader.sql
 
