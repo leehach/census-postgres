@@ -259,29 +259,48 @@ $function$ LANGUAGE plpgsql;
 DROP FUNCTION IF EXISTS sql_import_sequences_and_insert_into_tables(boolean, text[], int[], text);  
 CREATE FUNCTION sql_import_sequences_and_insert_into_tables(exec boolean = FALSE, stusab_criteria text[] = ARRAY['%'], 
 	seq_criteria int[] = ARRAY[-1], actions text = 'atem'
-	) RETURNS text AS $function$
+	) RETURNS int AS $function$
 DECLARE 
-	sql TEXT := '';
-	bool_large_geo BOOLEAN;
-	bool_small_geo BOOLEAN;
-	bool_estimate BOOLEAN;
-	bool_moe BOOLEAN;
-	sql_large_geo TEXT;
-	sql_small_geo TEXT;
-	sql_large_geo_moe TEXT;
-	sql_small_geo_moe TEXT;
 	seq_criteria2 int[];
-	filename_part TEXT :='';
+	stusab_criteria2 text[];
+	geo_criteria text[];
+	estimate_moe_criteria text[];
 BEGIN	
-	EXECUTE 'SELECT ' || current_schema() || '.get_refyear_period();' INTO filename_part;
+	IF exec = FALSE THEN RETURN 0;
+
 	IF seq_criteria = ARRAY[-1] THEN 
 		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
 	ELSE
 		seq_criteria2 := seq_criteria;
 	END IF;
 
-	SELECT sql_drop_import_tables
+	SELECT sql_drop_import_tables(exec, seq_criteria2, actions);
+	SELECT sql_create_import_tables(exec, seq_criteria2, actions);
+	SELECT sql_import_sequences(exec, stusab_criteria, seq_criteria2, actions);
+	SELECT sql_insert_into_tables(exec, seq_criteria2, actions);
+	SELECT sql_drop_import_tables(exec, seq_criteria2, actions);
 
+	IF stusab_criteria = ARRAY['%'] THEN 
+		stusab_criteria2 := (SELECT array_agg(stusab) FROM stusab); 
+	ELSE
+		stusab_criteria2 := stusab_criteria;
+	END IF;
+
+	IF actions ILIKE '%a%' OR actions NOT ILIKE '%t%' THEN geo_criteria = geo_criteria || ARRAY['large']; END IF;
+	IF actions ILIKE '%t%' OR actions NOT ILIKE '%a%' THEN geo_criteria = geo_criteria || ARRAY['small']; END IF;
+
+	IF actions ILIKE '%e%' OR actions NOT ILIKE '%m%' THEN estimate_moe_criteria = estimate_moe_criteria || ARRAY['estimate']; END IF;
+	IF actions ILIKE '%m%' OR actions NOT ILIKE '%e%' THEN estimate_moe_criteria = estimate_moe_criteria || ARRAY['moe']; END IF;
+	
+	INSERT INTO import_log (seq, stusab, geo, estimate_moe)
+	SELECT seq, stusab, geo, estimate_moe
+	FROM (SELECT unnest(seq_criteria2) AS seq) a,
+		(SELECT unnest(stusab_criteria2) AS stusab) b,
+		(SELECT unnest(geo_criteria) AS geo) c,
+		(SELECT unnest(estimate_moe_criteria) AS estimate_moe) d
+	;
+
+	RETURN 1;
 END;
 $function$ LANGUAGE plpgsql;
 

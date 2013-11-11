@@ -104,7 +104,7 @@ This script generates the COPY statements which actually import the geoheader fi
     sql_drop_import_tables([exec boolean[, seq_criteria int array [, actions text]]])
     sql_create_import_tables([exec boolean[, seq_criteria int array [, actions text]]])
 
-These functions drop or create staging tables for the estimate sequences and margin of error sequences. The parameters are explained above. There is no ability to restrict by state, since all states are copied to the same staging table. Generating unused staging tables is harmless. Usually it is easiest to create and drop all staging tables at once, but high-level function (to be added) will DROP IF EXISTS and CREATE the import tables, transfer to final storage, and DROP the no longer needed import table.
+These functions drop or create staging tables for the estimate sequences and margin of error sequences. The parameters are explained above. There is no ability to restrict by state, since all states are copied to the same staging table. Generating unused staging tables is harmless. Usually it is easiest to create and drop all staging tables at once, but sql_import_sequences_and_insert_into_tables() will drop and create staging tables, import and transfer the data to final storage, and then clean up (drop) the staging tables.
 
 The create function creates UNLOGGED tables if Postgres version 9.1+ (allowing faster loading, but will lose data in unexpected database shutdown).
 
@@ -162,6 +162,12 @@ m: Indicates to import the margins of error.
 Other letters are ignored. An empty string or a string with neither e nor m is treated as a missing parameter, and follows the default behavior which is to operate on both estimates and margins of error.
 
 If you have only staged some sequences or just the estimates or margins of errors, this function will harmlessly attempt to copy zero rows (for the missing sequences or estimates/MOEs) from the staging to the permanent tables.
+
+    sql_import_sequences_and_insert_into_tables([exec boolean[, stusab_criteria text array[, seq_criteria int array [, actions text]]]])
+
+Combines creation of the staging tables (dropping first, if necessary), transfer of the data to the final storage tables, cleaning up (dropping) the staging tables, and adding rows to the import_log to indicate which states, sequences, etc. have been imported. Performance will degrade significantly if too many sequences are included in the same transaction. It is probably best for this omnibus function to keep the number of sequences to 10 or less. If use of a single script is desired, use multiple calls to this function and wrap each call in a transaction block. Note that importing multiple states in the same sequence does not degrade performance in the same way (and is probably faster than doing each state separately), as they are all written to the same staging table and then copied in one INSERT statement to the final storage table.
+
+This function retains an exec parameter to parallel other, similar functions, in order to avoid unintended actions (particularly if the function were called with no parameters, which normally indicates **not** to perform the action). This function does not, however, return any SQL statements if called with exec = FALSE. It just exits without doing anything.
 
 ### Maintenance functions
 
