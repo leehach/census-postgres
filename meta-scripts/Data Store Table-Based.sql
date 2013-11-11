@@ -37,7 +37,9 @@ DECLARE
 	sql TEXT := '';
 	sql_estimate text;
 	sql_moe text;
+	geoid_def text := '';
 BEGIN	
+	SELECT 'geoid varchar(' || field_size || ') UNIQUE' INTO geoid_def FROM geoheader_schema where name = 'geoid';
 	SELECT array_to_string(array_agg(sql1), E'\n'), array_to_string(array_agg(sql2), E'\n') 
 	INTO sql_estimate, sql_moe
 	FROM (
@@ -46,7 +48,7 @@ BEGIN
 			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN 
 				'CREATE TABLE ' || seq_id || E' (\n'
 				|| E'\tfileid varchar(6),\n\tfiletype varchar(6), \n\tstusab varchar(2), \n'
-				|| E'\tchariter varchar(3), \n\tseq varchar(4), \n\tlogrecno int,\n' 
+				|| E'\tchariter varchar(3), \n\tseq varchar(4), \n\tlogrecno int,\n\t' || geoid_def || E',\n'
 				ELSE ''
 			END || 
 			E'\t' || cell_id || ' double precision,' ||
@@ -57,7 +59,7 @@ BEGIN
 			CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN 
 				'CREATE TABLE ' || seq_id || E'_moe (\n'
 				|| E'\tfileid varchar(6),\n\tfiletype varchar(6), \n\tstusab varchar(2), \n'
-				|| E'\tchariter varchar(3), \n\tseq varchar(4), \n\tlogrecno int,\n' 
+				|| E'\tchariter varchar(3), \n\tseq varchar(4), \n\tlogrecno int,\n\t' || geoid_def || E',\n'
 				ELSE ''
 			END || 
 			E'\t' || cell_id || '_moe double precision,' ||
@@ -90,7 +92,7 @@ BEGIN
 		SELECT 
 			seq,
 			CASE WHEN table_position = 1 THEN 'CREATE VIEW ' || table_id || E' AS SELECT \n'
-				|| E'\tstusab, logrecno,\n' 
+				|| E'\tstusab, logrecno, geoid,\n' 
 				ELSE ''
 			END || 
 			E'\t' || cell_id || 
@@ -133,7 +135,7 @@ BEGIN
 		SELECT 
 			seq,
 			CASE WHEN table_position = 1 THEN 'CREATE VIEW ' || table_id || E'_moe AS SELECT \n'
-				|| E'\tstusab, logrecno,\n' 
+				|| E'\tstusab, logrecno, geoid,\n' 
 				ELSE ''
 			END || 
 			E'\t' || cell_id || ', ' || cell_id || '_moe' ||
@@ -164,6 +166,7 @@ $function$ LANGUAGE plpgsql;
 
 DROP FUNCTION IF EXISTS sql_insert_into_tables(boolean, int[], text);
 CREATE FUNCTION sql_insert_into_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], actions text = 'em') RETURNS text AS $function$
+--Possibly modify to add with_geoid parameter which reads value from joined geoheader table
 DECLARE 
 	sql TEXT := '';
 	sql_estimate TEXT;
@@ -266,7 +269,7 @@ DECLARE
 	geo_criteria text[];
 	estimate_moe_criteria text[];
 BEGIN	
-	IF exec = FALSE THEN RETURN 0;
+	IF exec = FALSE THEN RETURN 0; END IF;
 
 	IF seq_criteria = ARRAY[-1] THEN 
 		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
@@ -333,7 +336,16 @@ BEGIN
 		) s
 	;
 
-	sql := sql_estimate || E'\n\n' || sql_moe;
+	--e means Estimates
+	--m means Marging of Error
+	--Missing e implies m, missing m implies e
+	IF actions ILIKE '%e%' OR actions NOT ILIKE '%m%' THEN
+		sql := sql || sql_estimate || E'\n\n'; 
+	END IF;
+	IF actions ILIKE '%m%' OR actions NOT ILIKE '%e%' THEN
+		sql := sql || sql_moe || E'\n\n'; 
+	END IF;
+
 	IF exec THEN 
 		DELETE FROM import_log WHERE seq > 0;
 		EXECUTE sql; 
@@ -366,7 +378,48 @@ BEGIN
 			'ALTER TABLE ' || seq_id || ' SET (autovacuum_enabled = ' || set_autovacuum || ', toast.autovacuum_enabled = ' || set_autovacuum || ');' AS sql1,
 			'ALTER TABLE ' || seq_id || '_moe SET (autovacuum_enabled = ' || set_autovacuum || ', toast.autovacuum_enabled = ' || set_autovacuum || ');' AS sql2
 		FROM 	vw_sequence
-		where 	seq = any (seq_criteria2)
+		WHERE 	seq = any (seq_criteria2)
+		ORDER BY seq
+		) s
+	;
+
+	--e means Estimates
+	--m means Marging of Error
+	--Missing e implies m, missing m implies e
+	IF actions ILIKE '%e%' OR actions NOT ILIKE '%m%' THEN
+		sql := sql || sql_estimate || E'\n\n'; 
+	END IF;
+	IF actions ILIKE '%m%' OR actions NOT ILIKE '%e%' THEN
+		sql := sql || sql_moe || E'\n\n'; 
+	END IF;
+
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
+END;
+$function$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS sql_add_geoid_to_storage_tables(boolean);
+CREATE FUNCTION sql_add_geoid_to_storage_tables(exec boolean = FALSE) RETURNS text AS $function$
+DECLARE 
+	sql TEXT := '';
+	sql_estimate text;
+	sql_moe text;
+	geoid_def text := '';
+BEGIN	
+	SELECT 'geoid varchar(' || field_size || ') UNIQUE' INTO geoid_def FROM geoheader_schema where name = 'geoid';
+
+	SELECT array_to_string(array_agg(sql1), E'\n'), array_to_string(array_agg(sql2), E'\n') 
+	INTO sql_estimate, sql_moe
+	FROM (
+		SELECT
+			seq,
+			'ALTER TABLE ' || seq_id || ' ADD COLUMN ' || geoid_def || ';' AS sql1,
+			'ALTER TABLE ' || seq_id || '_moe ADD COLUMN ' || geoid_def || ';' AS sql2
+		FROM 	vw_sequence
 		ORDER BY seq
 		) s
 	;
@@ -381,3 +434,50 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
+DROP FUNCTION IF EXISTS sql_update_geoid_storage_tables(boolean);
+CREATE FUNCTION sql_update_geoid_storage_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], actions text = 'em') RETURNS text AS $function$
+DECLARE 
+	sql TEXT := '';
+	sql_estimate text;
+	sql_moe text;
+	geoid_def text := '';
+	seq_criteria2 int[];
+BEGIN	
+	IF seq_criteria = ARRAY[-1] THEN 
+		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
+	ELSE
+		seq_criteria2 := seq_criteria;
+	END IF;
+	SELECT 'geoid varchar(' || field_size || ') UNIQUE' INTO geoid_def FROM geoheader_schema where name = 'geoid';
+
+	SELECT array_to_string(array_agg(sql1), E'\n'), array_to_string(array_agg(sql2), E'\n') 
+	INTO sql_estimate, sql_moe
+	FROM (
+		SELECT
+			seq,
+			'UPDATE ' || seq_id || ' SET geoid = g.geoid FROM geoheader g WHERE s.stusab = g.stusab AND s.logrecno = g.logrecno;' AS sql1,
+			'UPDATE ' || seq_id || '_moe SET geoid = g.geoid FROM geoheader g WHERE s.stusab = g.stusab AND s.logrecno = g.logrecno;' AS sql2
+		FROM 	vw_sequence
+		WHERE 	seq = any (seq_criteria2)
+		ORDER BY seq
+		) s
+	;
+
+	--e means Estimates
+	--m means Marging of Error
+	--Missing e implies m, missing m implies e
+	IF actions ILIKE '%e%' OR actions NOT ILIKE '%m%' THEN
+		sql := sql || sql_estimate || E'\n\n'; 
+	END IF;
+	IF actions ILIKE '%m%' OR actions NOT ILIKE '%e%' THEN
+		sql := sql || sql_moe || E'\n\n'; 
+	END IF;
+
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
+END;
+$function$ LANGUAGE plpgsql;
