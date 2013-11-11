@@ -434,7 +434,7 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_update_geoid_storage_tables(boolean);
+DROP FUNCTION IF EXISTS sql_update_geoid_storage_tables(boolean, int[], text);
 CREATE FUNCTION sql_update_geoid_storage_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], actions text = 'em') RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
