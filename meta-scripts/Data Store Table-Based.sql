@@ -255,6 +255,37 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
+--Complete import with subsequent drop of staging tables
+DROP FUNCTION IF EXISTS sql_import_sequences_and_insert_into_tables(boolean, text[], int[], text);  
+CREATE FUNCTION sql_import_sequences_and_insert_into_tables(exec boolean = FALSE, stusab_criteria text[] = ARRAY['%'], 
+	seq_criteria int[] = ARRAY[-1], actions text = 'atem'
+	) RETURNS text AS $function$
+DECLARE 
+	sql TEXT := '';
+	bool_large_geo BOOLEAN;
+	bool_small_geo BOOLEAN;
+	bool_estimate BOOLEAN;
+	bool_moe BOOLEAN;
+	sql_large_geo TEXT;
+	sql_small_geo TEXT;
+	sql_large_geo_moe TEXT;
+	sql_small_geo_moe TEXT;
+	seq_criteria2 int[];
+	filename_part TEXT :='';
+BEGIN	
+	EXECUTE 'SELECT ' || current_schema() || '.get_refyear_period();' INTO filename_part;
+	IF seq_criteria = ARRAY[-1] THEN 
+		seq_criteria2 := (SELECT array_agg(seq) FROM vw_sequence); 
+	ELSE
+		seq_criteria2 := seq_criteria;
+	END IF;
+
+	SELECT sql_drop_import_tables
+
+END;
+$function$ LANGUAGE plpgsql;
+
+
 --Maintenance Functions
 DROP FUNCTION IF EXISTS sql_truncate_storage_tables(boolean, int[], text);
 CREATE FUNCTION sql_truncate_storage_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], actions text = 'em') RETURNS text AS $function$
