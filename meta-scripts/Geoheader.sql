@@ -15,7 +15,7 @@ BEGIN
 				ELSE 'varchar(' || field_size || ')'
 			END || E',\n' ||
 			CASE WHEN line_number = max(line_number) OVER () THEN 
-				E'\tPRIMARY KEY (stusab, logrecno)\n)\nWITH (autovacuum_enabled = FALSE, toast.autovacuum_enabled = FALSE);' 
+				E'\tPRIMARY KEY (stusab, logrecno)\n);' 
 				ELSE '' 
 			END
 			AS sql_statement
@@ -62,20 +62,28 @@ DROP FUNCTION IF EXISTS sql_parse_tmp_geoheader(boolean, text);
 CREATE FUNCTION sql_parse_tmp_geoheader(exec boolean = FALSE, target text = 'geoheader') RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
+	insert_list TEXT := '';
+	values_list TEXT := '';
 	row RECORD;
 BEGIN	
 	sql := 'INSERT INTO ' || target || E' SELECT\n';
 	FOR row IN SELECT *, max(line_number) OVER () AS max_line_number FROM geoheader_schema LOOP
-		sql := sql || E'\t';
-		IF row.line_number > 5 THEN sql := sql || 'NULLIF('; END IF;
-		sql := sql || 'btrim(substring(all_fields from ' || row.starting_position || ' for ' || row.field_size || '))';
-		IF row.name IN ('sumlevel', 'sumlev', 'logrecno') THEN sql := sql || '::int'; END IF;
-		IF row.line_number > 5 THEN sql := sql || E', \'\')'; END IF;
-		sql := sql || ' AS ' || row.name;
-		IF row.line_number < row.max_line_number THEN sql := sql || ','; END IF;
-		sql := sql || E'\n';
+		insert_list := insert_list || E'\t' || row.name; 
+		values_list := values_list || E'\t';
+		IF row.line_number > 5 THEN values_list := values_list || 'NULLIF('; END IF;
+		values_list := values_list || 'btrim(substring(all_fields from ' || row.starting_position || ' for ' || row.field_size || '))';
+		IF row.name IN ('sumlevel', 'sumlev', 'logrecno') THEN values_list := values_list || '::int'; END IF;
+		IF row.line_number > 5 THEN values_list := values_list || E', \'\')'; END IF;
+		values_list := values_list || ' AS ' || row.name;
+		IF row.line_number < row.max_line_number THEN 
+			insert_list := insert_list || ','; 
+			values_list := values_list || ','; 
+		END IF;
+		insert_list := insert_list || E'\n';
+		values_list := values_list || E'\n'; 
 	END LOOP;
-	sql := sql || 'FROM tmp_geoheader';
+
+	sql := 'INSERT INTO ' || target || E'(\n' || insert_list || E')\nSELECT\n' || values_list || 'FROM tmp_geoheader;';
 
 	IF exec THEN 
 		EXECUTE sql; 
