@@ -455,8 +455,8 @@ BEGIN
 	FROM (
 		SELECT
 			seq,
-			'UPDATE ' || seq_id || ' SET geoid = g.geoid FROM geoheader g WHERE s.stusab = g.stusab AND s.logrecno = g.logrecno;' AS sql1,
-			'UPDATE ' || seq_id || '_moe SET geoid = g.geoid FROM geoheader g WHERE s.stusab = g.stusab AND s.logrecno = g.logrecno;' AS sql2
+			'UPDATE ' || seq_id || ' s SET geoid = g.geoid FROM geoheader g WHERE s.stusab = g.stusab AND s.logrecno = g.logrecno;' AS sql1,
+			'UPDATE ' || seq_id || '_moe s SET geoid = g.geoid FROM geoheader g WHERE s.stusab = g.stusab AND s.logrecno = g.logrecno;' AS sql2
 		FROM 	vw_sequence
 		WHERE 	seq = any (seq_criteria2)
 		ORDER BY seq
