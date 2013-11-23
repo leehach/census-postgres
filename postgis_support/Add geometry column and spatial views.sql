@@ -19,7 +19,6 @@ FROM tl_2010_us_state10 t
 WHERE g.sumlevel = 40 AND split_part(g.geoid, 'US', 2) = t.geoid10
 ;
 
---Needs gid above
 CREATE OR REPLACE VIEW geo_state AS
 SELECT 
 	gid,
