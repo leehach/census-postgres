@@ -78,11 +78,11 @@ The `geoheader` table is the glue that holds the ACS together. It contains names
 
 * create_geoheader.sql
 
-After running, tmp_geoheader may be TRUNCATEd or DROPped, so that when additional data is imported, parse_tmp_geoheader.sql does not attempt to create duplicate records (which will fail due to PRIMARY KEY violation).
+After running, `tmp_geoheader` may be TRUNCATEd or DROPped, so that when additional data is imported, parse_tmp_geoheader.sql does not attempt to create duplicate records (which will fail due to PRIMARY KEY violation).
 
 ### Create Table-based Data Store
 
-These scripts create two tables for each sequence, one with estimates (named seqnnnn), and one with margins of error (named seqnnnn_moe). Column names are unique (margin of error tables have _moe at the end of column names) except for key fields so that the tables can be joined without conflict or confusion. These scripts must be run in this order.
+These scripts create two tables for each sequence, one with estimates (named `seqnnnn`), and one with margins of error (named `seqnnnn_moe`). Column names are unique (margin of error tables have `_moe` at the end of column names) except for key fields so that the tables can be joined without conflict or confusion. These scripts must be run in this order.
 
 Parse_tmp_geoheader.sql may be run at any time. The other scripts must be run in order.
 
