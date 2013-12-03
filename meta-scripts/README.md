@@ -187,6 +187,13 @@ Autovacuum can take up considerable resources, interfering with bulk loading of 
 
 Note that the first parameter, set_autovacuum, is a boolean indicating whether to enable autovacuum (TRUE) or disable it (FALSE). Setting it to match its current setting is harmless, so if it has been enabled for some tables, you don't have to figure out which tables are currently enabled in order to disable all autovacuum on all tables. See sql_insert_into_tables() for an explanation of subsequent parameters.
 
+    sql_add_geoid_to_storage_tables([exec boolean])
+    sql_update_geoid_storage_tables(boolean, int[], text)
+
+These function adds the field `geoid`, a single-column unique identifier present in the geoheader table, to all sequence tables as well, and populate the field. This field is already included in the sequence table definitions in current (post-Nov 2013) versions of the create table scripts. The `sql_add_geoid_to_storage_tables()` function is only necessary if you created the data store using previous versions of the scripts. The `sql_update_geoid_storage_tables` *is* necessary if you want to make use of the `geoid` field, and must be run after `sql_insert_into_tables()`.
+
+Background: The sequence tables primary key is the two-column unique identifier `stusab, logrecno`. USCB has introduced `geoid` as a single-column, global unique identifier, primarily for the purposes of joining to TIGER/Line spatial data. I have added `geoid` to the sequence tables (a) to serve as a single-column join key, and (b) to allow joining of the sequence tables directly to spatial tables without requiring the join to "step through" the geoheader table.
+
 ## Data Store Array-Based.sql
 
 Currently incomplete. Provided for your amusement.

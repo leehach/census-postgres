@@ -82,6 +82,35 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
+DROP FUNCTION IF EXISTS sql_drop_views_stored_by_tables(boolean);
+CREATE FUNCTION sql_drop_views_stored_by_tables(exec boolean = FALSE) RETURNS text AS $function$
+DECLARE
+	sql TEXT := '';
+	sql_estimate text;
+	sql_moe text;
+BEGIN
+	SELECT array_to_string(array_agg(sql1), E'\n'), array_to_string(array_agg(sql2), E'\n') 
+	INTO sql_estimate, sql_moe
+	FROM (
+		SELECT
+			seq,
+			'DROP VIEW IF EXISTS ' || table_id || E';' AS sql1,
+			'DROP VIEW IF EXISTS ' || table_id || E'_moe;' AS sql2
+		FROM vw_subject_table
+		ORDER BY seq, start_position
+		) s
+	;
+
+	sql := sql_estimate || E'\n\n' || sql_moe;
+	IF exec THEN 
+		EXECUTE sql; 
+		RETURN 'Success!';
+	ELSE
+		RETURN sql;
+	END IF;
+END;
+$function$ LANGUAGE plpgsql;
+
 DROP FUNCTION IF EXISTS sql_view_estimate_stored_by_tables(boolean);
 CREATE FUNCTION sql_view_estimate_stored_by_tables(exec boolean = FALSE) RETURNS text AS $function$
 DECLARE 
@@ -92,7 +121,7 @@ BEGIN
 		SELECT 
 			seq,
 			CASE WHEN table_position = 1 THEN 'CREATE VIEW ' || table_id || E' AS SELECT \n'
-				|| E'\tstusab, logrecno, geoid,\n' 
+				|| E'\t' || seq_id || '.stusab, ' || seq_id || '.logrecno, ' || seq_id || E'.geoid,\n' 
 				ELSE ''
 			END || 
 			E'\t' || cell_id || 
@@ -135,7 +164,7 @@ BEGIN
 		SELECT 
 			seq,
 			CASE WHEN table_position = 1 THEN 'CREATE VIEW ' || table_id || E'_moe AS SELECT \n'
-				|| E'\tstusab, logrecno, geoid,\n' 
+				|| E'\t' || seq_id || '.stusab, ' || seq_id || '.logrecno, ' || seq_id || E'.geoid,\n' 
 				ELSE ''
 			END || 
 			E'\t' || cell_id || ', ' || cell_id || '_moe' ||
