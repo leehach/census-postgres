@@ -193,9 +193,8 @@ BEGIN
 END;
 $function$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS sql_insert_into_tables(boolean, int[], text);
-CREATE FUNCTION sql_insert_into_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], actions text = 'em') RETURNS text AS $function$
---Possibly modify to add with_geoid parameter which reads value from joined geoheader table
+DROP FUNCTION IF EXISTS sql_insert_into_tables(boolean, int[], text, BOOLEAN);
+CREATE FUNCTION sql_insert_into_tables(exec boolean = FALSE, seq_criteria int[] = ARRAY[-1], actions text = 'em', with_geoid BOOLEAN = TRUE) RETURNS text AS $function$
 DECLARE 
 	sql TEXT := '';
 	sql_estimate TEXT;
@@ -225,17 +224,23 @@ BEGIN
 				END || 
 				E'\t' || cell_id ||
 				CASE WHEN seq_position = max(seq_position) OVER (PARTITION BY seq) THEN
-					E'\n)'
+					CASE WHEN with_geoid THEN
+						E',\n\tgeoid\n)'
+						ELSE E'\n)'
+					END
 					ELSE ','
 				END AS insert_list_estimate,
 
 				CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
-					E'SELECT fileid, filetype, upper(stusab), chariter, seq, logrecno::int,\n' 
+					E'SELECT t.fileid, t.filetype, upper(t.stusab), t.chariter, t.seq, t.logrecno::int,\n' 
 					ELSE ''
 				END || 
 				E'\tNULLIF(NULLIF(' || cell_id || E', \'\'), \'.\')::double precision' ||
 				CASE WHEN seq_position = max(seq_position) OVER (PARTITION BY seq) THEN
-					E'\nFROM tmp_' || seq_id || ';'
+					CASE WHEN with_geoid THEN
+						E',\n\tgeoid\nFROM tmp_' || seq_id || ' t JOIN geoheader g ON upper(t.stusab) = g.stusab AND t.logrecno = g.logrecno;'
+						ELSE E'\nFROM tmp_' || seq_id || ' t;'
+					END			
 					ELSE ','
 				END AS values_list_estimate,
 
@@ -246,17 +251,23 @@ BEGIN
 				END || 
 				E'\t' || cell_id || '_moe' ||
 				CASE WHEN seq_position = max(seq_position) OVER (PARTITION BY seq) THEN
-					E'\n)'
+					CASE WHEN with_geoid THEN
+						E',\n\tgeoid\n)'
+						ELSE E'\n)'
+					END
 					ELSE ','
 				END AS insert_list_moe,
 
 				CASE WHEN seq_position = min(seq_position) OVER (PARTITION BY seq) THEN
-					E'SELECT fileid, filetype, upper(stusab), chariter, seq, logrecno::int,\n' 
+					E'SELECT t.fileid, t.filetype, upper(t.stusab), t.chariter, t.seq, t.logrecno::int,\n' 
 					ELSE ''
 				END || 
 				E'\tNULLIF(NULLIF(' || cell_id || E'_moe, \'\'), \'.\')::double precision' ||
 				CASE WHEN seq_position = max(seq_position) OVER (PARTITION BY seq) THEN
-					E'\nFROM tmp_' || seq_id || '_moe;'
+					CASE WHEN with_geoid THEN
+						E',\n\tgeoid\nFROM tmp_' || seq_id || '_moe t JOIN geoheader g ON upper(t.stusab) = g.stusab AND t.logrecno = g.logrecno;'
+						ELSE E'\nFROM tmp_' || seq_id || '_moe t;'
+					END			
 					ELSE ','
 				END AS values_list_moe
 			FROM

@@ -152,7 +152,7 @@ Creates one database view displaying estimates for each "subject table".
 
 Creates one database view for each "subject table". Margin of error will rarely be used independent of their estimate, the MOE views return estimates as well as margins of error.
 
-    sql_insert_into_tables([exec boolean[, seq_criteria int array[, actions text]]])
+    sql_insert_into_tables([exec boolean[, seq_criteria int array[, actions text[, with_geoid boolean]]]])
 
 Transfers data from the staging tables to the estimate and margin of error tables. The seq_criteria parameter determines which sequences to transfer to permanent storage. If omitted, all sequences are copied. The actions parameter determines what part of the entire Census dataset to move to final storage (or generate scripts for). If omitted, the default is to operate on both the estimates and margins of error. The parameter is inspected for the letters e and m, in any order.
 
@@ -160,6 +160,8 @@ e: Indicates to import the estimates.
 m: Indicates to import the margins of error.
 
 Other letters are ignored. An empty string or a string with neither e nor m is treated as a missing parameter, and follows the default behavior which is to operate on both estimates and margins of error.
+
+The with_geoid parameter will write the value from the `geoid` column of the geoheader table to the sequence table. Obviously, this requires geoheader to have been populated first. A maintenance function is provided to add this value after the fact (see `sql_update_geoid_storage_tables()` below), but in practice, it will be *much* faster to do it during load. For this reason, with_geoid defaults to TRUE. The only reason to set it to FALSE is if you are loading new data (e.g. a new state or sequence) to old tables that do not have the `geoid` column (this column was added in Nov 2013).
 
 If you have only staged some sequences or just the estimates or margins of errors, this function will harmlessly attempt to copy zero rows (for the missing sequences or estimates/MOEs) from the staging to the permanent tables.
 
@@ -175,7 +177,7 @@ These functions are used to DROP, TRUNCATE, VACUUM, or set autovacuum on existin
 
     sql_drop_storage_tables([exec boolean])
 
-**Use cautiously.** DROPs storage tables **with CASCADE**. If you have created views or other objects dependent upon these tables, they will be dropped also. Since sql_store_by_tables() creates *all* sequence storage tables in the schema, this function does not allow dropping of a single sequence or subset of sequences. 
+**Use cautiously.** DROPs storage tables **with CASCADE**. If you have created views or other objects dependent upon these tables, they will be dropped also. Since `sql_store_by_tables()` creates *all* sequence storage tables in the schema, this function does not allow dropping of a single sequence or subset of sequences. 
 
     sql_truncate_storage_tables([exec boolean[, seq_criteria int array[, actions text]]])
 
@@ -190,7 +192,7 @@ Note that the first parameter, set_autovacuum, is a boolean indicating whether t
     sql_add_geoid_to_storage_tables([exec boolean])
     sql_update_geoid_storage_tables([exec boolean[, seq_criteria int array[, actions text]]])
 
-These function adds the field `geoid`, a single-column unique identifier present in the geoheader table, to all sequence tables as well, and populate the field. This field is already included in the sequence table definitions in current (post-Nov 2013) versions of the create table scripts. The `sql_add_geoid_to_storage_tables()` function is only necessary if you created the data store using previous versions of the scripts. The `sql_update_geoid_storage_tables` *is* necessary if you want to make use of the `geoid` field, and must be run after `sql_insert_into_tables()`.
+These function adds the field `geoid`, a single-column unique identifier present in the geoheader table, to all sequence tables as well, and populate the field. This field is already included in the sequence table definitions in current (post-Nov 2013) versions of the create table scripts. The `sql_add_geoid_to_storage_tables()` function is only necessary if you created the data store using previous versions of the scripts. Additionally `sql_insert_into_tables()` will JOIN to the geoheader table and write appropriate `geoid` values to the sequences tables on load. The `sql_update_geoid_storage_tables` is only necessary if you are updating tables created by the old scripts, and in practice it will be very slow (20-30 minutes per sequence).
 
 Background: The sequence tables primary key is the two-column unique identifier `stusab, logrecno`. USCB has introduced `geoid` as a single-column, global unique identifier, primarily for the purposes of joining to TIGER/Line spatial data. I have added `geoid` to the sequence tables (a) to serve as a single-column join key, and (b) to allow joining of the sequence tables directly to spatial tables without requiring the join to "step through" the geoheader table.
 
